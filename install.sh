@@ -1,6 +1,6 @@
 #!/bin/bash
 
-pacaur -S zsh oh-my-zsh
+pacaur -S zsh oh-my-zsh-git
 
 cd
 git clone https://github.com/gpakosz/.tmux.git
