@@ -1,3 +1,5 @@
+#!/bin/bash
+
 pacaur -S zsh oh-my-zsh
 
 cd
