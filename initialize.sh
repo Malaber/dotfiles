@@ -8,6 +8,6 @@ BASEDIR=$(dirname "$SCRIPTPATH")
 ln -sf $BASEDIR/.profile ~/
 ln -sf $BASEDIR/.tmux.conf.local ~/
 ln -sf $BASEDIR/.zshrc ~/
-
+sudo cp -f $BASEDIR/dschaedler.zsh-theme /usr/share/oh-my-zsh/themes/dschaedler.zsh-theme
 
 date >> $BASEDIR/LastRun
