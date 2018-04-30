@@ -5,9 +5,9 @@ BASEDIR=$(dirname "$SCRIPTPATH")
 #echo $BASEDIR
 
 
-ln -s $BASEDIR/.profile ~/
-ln -s $BASEDIR/.tmux.conf.local ~/
-ln -s $BASEDIR/.zshrc ~/
+ln -sf $BASEDIR/.profile ~/
+ln -sf $BASEDIR/.tmux.conf.local ~/
+ln -sf $BASEDIR/.zshrc ~/
 
 
 date >> $BASEDIR/LastRun
