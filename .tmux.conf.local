@@ -279,7 +279,7 @@ set-window-option  -g automatic-rename-format "#{b:pane_current_path}"
 set-window-option -g automatic-rename on
 set -g default-terminal screen-256color
 
-
+##############################
 #daniel
 
 # remap prefix from 'C-b' to 'C-a'
@@ -305,6 +305,10 @@ bind -n M-Down select-pane -D
 # Enable mouse control (clickable windows, panes, resizable panes)
 set -g mouse on
 
+#more obvious panel selection
+set-option -g pane-active-border-style "bg=blue"
+set-option -ag pane-active-border-style "fg=black"
+################################
 
 # EOF
 #
