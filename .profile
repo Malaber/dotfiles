@@ -4,9 +4,13 @@ export M2_HOME=/opt/maven
 #intelliJ
 export IDEA_JDK=/usr/lib/jvm/intellij-jdk
 
+#vstuido code
+alias codehere="code . &"
 
 #ruby
-export GEM_HOME=$HOME/.gem/ruby/2.4.0
+export GEM_HOME=$HOME/.rbenv/versions/2.5.3
+eval "$(rbenv init -)"
+#PATH="$(ruby -r rubygems -e 'puts Gem.user_dir')/bin:$PATH"
 
 #ssh
 unset SSH_AGENT_PID
@@ -22,9 +26,6 @@ alias sshaddauto='ssh-add ~/.ssh/id_rsa ~/.ssh/privat'
 
 #standart editor
 export EDITOR=vim
-
-#git
-alias git='LANG=en_GB git'
 
 #update script
 alias update='yay -Syu && /home/dschaedler/custom_clientinfocollector.sh'
@@ -42,8 +43,11 @@ alias hotelkette='/home/dschaedler/Hotelkette.sh'
 
 #ps aux
 alias psauxgrep='ps -aux | head -1 && ps -aux | grep'
+
 #git
+alias git='LANG=en_GB git'
 alias gmff='git merge --ff-only'
+alias gitconfiggithub='git config user.name "Malaber" && git config user.email "32635600+Malaber@users.noreply.github.com"'
 
 #docker 
 alias dockerkillall='docker kill $(docker ps -q)'
@@ -59,4 +63,4 @@ alias lps='lpass show -G'
 alias remake='make realclean && make'
 
 #path
-export PATH=$PATH:$HOME/.gem/ruby/2.4.0/bin:$M2_HOME/bin
+export PATH=$PATH:$M2_HOME/bin
