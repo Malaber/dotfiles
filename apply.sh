@@ -4,10 +4,12 @@ SCRIPTPATH=$(readlink -f "$0")
 BASEDIR=$(dirname "$SCRIPTPATH")
 #echo $BASEDIR
 
-$BASEDIR/apply_slim.sh
-
+sudo pacman -S --needed $(cat $BASEDIR/packages_slim)
 yay -S --needed $(cat $BASEDIR/packages)
 
+ln -sf $BASEDIR/.bashrc ~/
+ln -sf $BASEDIR/.profile ~/
+ln -sf $BASEDIR/.aliases ~/
 ln -sf $BASEDIR/.tmux.conf.local ~/
 ln -sf $BASEDIR/.zshrc ~/
 sudo cp -f $BASEDIR/dschaedler.zsh-theme /usr/share/oh-my-zsh/themes/dschaedler.zsh-theme
