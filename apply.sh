@@ -4,7 +4,7 @@ SCRIPTPATH=$(readlink -f "$0")
 BASEDIR=$(dirname "$SCRIPTPATH")
 #echo $BASEDIR
 
-$BASEDIR.apply_slim.sh
+$BASEDIR/apply_slim.sh
 
 yay -S --needed $(cat $BASEDIR/packages)
 
