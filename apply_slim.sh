@@ -8,3 +8,6 @@ ln -sf $BASEDIR/.bashrc ~/
 ln -sf $BASEDIR/.aliases ~/.profile
 
 sudo pacman -S --needed $(cat $BASEDIR/packages_slim)
+
+echo "\nAPPLY SLIM \n" >> $BASEDIR/LastRun
+date >> $BASEDIR/LastRun

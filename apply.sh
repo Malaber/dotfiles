@@ -16,4 +16,5 @@ sudo cp -f $BASEDIR/dschaedler.zsh-theme /usr/share/oh-my-zsh/themes/dschaedler.
 
 git config --global alias.pushall '!git remote | xargs -L1 git push --all'
 
+echo "\nAPPLY\n" >> $BASEDIR/LastRun
 date >> $BASEDIR/LastRun
