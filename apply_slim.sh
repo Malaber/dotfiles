@@ -7,4 +7,4 @@ BASEDIR=$(dirname "$SCRIPTPATH")
 ln -sf $BASEDIR/.profile ~/
 ln -sf $BASEDIR/.aliases ~/
 
-yay -S --needed $(cat $BASEDIR/packages_slim)
+sudo pacman -S --needed $(cat $BASEDIR/packages_slim)
