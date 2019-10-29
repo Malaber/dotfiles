@@ -7,7 +7,7 @@ alias sshconfig="$EDITOR ~/.ssh/config"
 alias cat='bat --plain --paging never'
 
 #update script
-alias update='yay -Syu && /home/dschaedler/custom_clientinfocollector.sh'
+alias update='yay -Syu'
 
 #add DNS to resolve.conf
 alias nameserverstuff='echo "nameserver 1.1.1.1\nnameserver 8.8.8.8" | sudo tee /etc/resolv.conf'
