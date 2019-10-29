@@ -250,7 +250,7 @@ tmux_conf_copy_to_os_clipboard=true
 #set -g history-limit 10000
 
 # start with mouse mode enabled
-#set -g mouse on
+set -g mouse on
 
 # force Vi mode
 #   really you should export VISUAL or EDITOR environment variable, see manual
@@ -308,6 +308,11 @@ set -g mouse on
 #more obvious panel selection
 set-option -g pane-active-border-style "bg=blue"
 set-option -ag pane-active-border-style "fg=black"
+################################
+
+# https://github.com/tmux/tmux/issues/599
+bind -Tcopy-mode-vi M-y send -X copy-pipe "xclip -i -sel p -f | xclip -i -sel c" \; display-message "copied to system clipboard"
+
 ################################
 
 # EOF
