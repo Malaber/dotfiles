@@ -34,6 +34,8 @@ alias psauxgrep='ps -aux | head -1 && ps -aux | grep'
 alias git='LANG=en_GB git'
 alias gmff='git merge --ff-only'
 alias gitconfiggithub='git config user.name "Malaber" && git config user.email "32635600+Malaber@users.noreply.github.com"'
+alias gitconfigfirma='git config user.name "Daniel Schädler" && git config user.email "dschaedler@united-internet.de"'
+alias gitconfiggitlab='git config user.name "Malaber" && git config user.email "gitlab@schaedler.rocks"'
 alias gpa='git pushall'
 gitrebasi() {
     git rebase -i HEAD~"$1" --autostash
@@ -44,6 +46,7 @@ alias grba='git rebase --autostash'
 alias dockerkillall='docker kill $(docker ps -q)'
 alias dockerdeleteallstoppedcontainers='docker rm $(docker ps -a -q)'
 alias dockerdeleteallimages='docker rmi $(docker images -q)'
+alias dockerimagesize="docker image inspect --format='{{.Size}}'"
 
 #lastpass
 alias lpscp='lpass show -G -c -p'
