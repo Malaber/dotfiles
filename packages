@@ -1,4 +1,5 @@
 rbenv
+pyenv
 ruby-build
 spectacle
 zsh
