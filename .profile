@@ -19,6 +19,8 @@ if [ "${gnupg_SSH_AUTH_SOCK_by:-0}" -ne $$ ]; then
 fi
 export GPG_TTY=$(tty)
 gpg-connect-agent updatestartuptty /bye >/dev/null
+export SSH_ASKPASS='/usr/bin/ksshaskpass'
+# Look at https://wiki.archlinux.org/index.php/KDE_Wallet#Using_the_KDE_Wallet_to_store_ssh_key_passphrases
 
 #path
 export PATH=$PATH:$M2_HOME/bin:~/php
