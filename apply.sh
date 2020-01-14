@@ -16,7 +16,7 @@ ln -sf $BASEDIR/.config/plasma-workspace/env/askpass.sh ~/.config/plasma-workspa
 
 sudo cp -f $BASEDIR/dschaedler.zsh-theme /usr/share/oh-my-zsh/themes/dschaedler.zsh-theme
 
-git config --global alias.pushall '!git remote | xargs -L1 git push --all'
+git config --global alias.pushall '!git remote | xargs -L1 git push'
 
 echo "\nAPPLY\n" >> $BASEDIR/LastRun
 date >> $BASEDIR/LastRun
