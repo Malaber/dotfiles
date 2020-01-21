@@ -18,6 +18,9 @@ alias sourceprofile="source ~/.profile"
 #docker-compose
 alias dc="docker-compose"
 
+#kde
+alias plasmarestart="killall plasmashell || true && bash -c \"nohup plasmashell >/dev/null 2>&1 & exit\""
+
 #hotelkette
 alias hotelkette='/home/dschaedler/Hotelkette.sh'
 
