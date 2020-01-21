@@ -100,3 +100,7 @@ fi
 
 source $ZSH/oh-my-zsh.sh
 source ~/.profile
+
+setopt no_share_history
+unsetopt share_history
+
