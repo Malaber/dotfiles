@@ -14,6 +14,8 @@ ln -sf $BASEDIR/.tmux.conf.local ~/
 ln -sf $BASEDIR/.zshrc ~/
 ln -sf $BASEDIR/.config/plasma-workspace/env/askpass.sh ~/.config/plasma-workspace/env/askpass.sh
 
+git config --global core.excludesfile "$BASEDIR/.global_gitignore"
+
 sudo cp -f $BASEDIR/dschaedler.zsh-theme /usr/share/oh-my-zsh/themes/dschaedler.zsh-theme
 
 git config --global alias.pushall '!git remote | xargs -L1 git push'
