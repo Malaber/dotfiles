@@ -1,6 +1,6 @@
 #!/bin/bash
 
-yay -S zsh oh-my-zsh-git
+yay -S --needed zsh oh-my-zsh-git
 
 cd
 git clone https://github.com/gpakosz/.tmux.git
