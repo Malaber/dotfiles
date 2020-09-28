@@ -11,4 +11,7 @@ echo  "Read https://bbs.archlinux.org/viewtopic.php?id=127894 to disable compres
 
 sudo chsh -s /bin/zsh $USER
 
+echo "" >> ~/.topsecretfbiundercover
+chmod 600 ~/.topsecretfbiundercover
+
 ./dotfiles/apply.sh
