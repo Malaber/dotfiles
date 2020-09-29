@@ -15,6 +15,7 @@ ln -sf $BASEDIR/.zshrc ~/
 ln -sf $BASEDIR/.config/plasma-workspace/env/askpass.sh ~/.config/plasma-workspace/env/askpass.sh
 
 git config --global core.excludesfile "$BASEDIR/.global_gitignore"
+git config --global user.useConfigOnly true
 
 sudo cp -f $BASEDIR/dschaedler.zsh-theme /usr/share/oh-my-zsh/themes/dschaedler.zsh-theme
 
