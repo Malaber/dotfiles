@@ -29,7 +29,9 @@ fi
 local return_code="%(?..%F{red}%? ↵%f)"
 
 local user_host="${PR_USER}%F{cyan}@${PR_HOST}"
+
 local current_dir="%B%F{blue}%~%f%b"
+
 local rvm_ruby=''
 if ${HOME}/.rvm/bin/rvm-prompt &> /dev/null; then # detect user-local rvm installation
   rvm_ruby='%F{red}‹$(${HOME}/.rvm/bin/rvm-prompt i v g s)›%f'
@@ -38,6 +40,7 @@ elif which rvm-prompt &> /dev/null; then # detect system-wide rvm installation
 elif which rbenv &> /dev/null; then # detect Simple Ruby Version Management
   rvm_ruby='%F{red}‹$(rbenv version | sed -e "s/ (set.*$//")›%f'
 fi
+
 local git_branch='$(git_prompt_info)'
 
 PROMPT="╭─${user_host} %F{yellow}[%T | %D{%a %e.%m.%y}]%f ${current_dir} ${rvm_ruby} ${git_branch}
