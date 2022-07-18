@@ -11,7 +11,7 @@ antigen bundles <<EOBUNDLES
     git
 EOBUNDLES
 
-antigen theme robbyrussell
+antigen theme dschaedler
 
 # 3. Commit Antigen Configuration
 antigen apply
