@@ -21,6 +21,5 @@ git config --global alias.oldest-ancestor '!bash -c '\''diff --old-line-format='
 
 sudo cp -f $BASEDIR/dschaedler.zsh-theme /usr/share/oh-my-zsh/themes/dschaedler.zsh-theme
 
-
-echo "\nAPPLY\n" >> $BASEDIR/LastRun
+echo -e "\nAPPLY\n" >> $BASEDIR/LastRun
 date >> $BASEDIR/LastRun
