@@ -4,6 +4,9 @@ export M2_HOME=/opt/maven
 #intelliJ
 export IDEA_JDK=/usr/lib/jvm/intellij-jdk
 
+#coreutils mac
+PATH="$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
+
 #ruby
 eval "$(rbenv init -)"
 export PATH="$HOME/.rbenv/bin:$PATH"
