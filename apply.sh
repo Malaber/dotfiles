@@ -17,5 +17,5 @@ git config --global alias.oldest-ancestor '!bash -c '\''diff --old-line-format='
 
 cp -f $BASEDIR/dschaedler.zsh-theme /Users/dschaedler/.antigen/bundles/robbyrussell/oh-my-zsh/themes/dschaedler.zsh-theme
 
-echo -e "\nAPPLY\n" >> $BASEDIR/LastRun
+echo -e "\nAPPLY" >> $BASEDIR/LastRun
 date >> $BASEDIR/LastRun

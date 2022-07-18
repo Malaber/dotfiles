@@ -14,4 +14,5 @@ sudo chsh -s /bin/zsh $USER
 echo "" >> ~/.topsecretfbiundercover
 chmod 600 ~/.topsecretfbiundercover
 
+echo -e "\nINSTALL" >> $BASEDIR/LastRun
 ./dotfiles/apply.sh
