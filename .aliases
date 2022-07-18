@@ -75,7 +75,7 @@ alias rm="rm -I"
 alias codehere="code . &"
 
 #intellij
-alias ijh="intellij-idea-ultimate-edition . &"
+alias ijh="open -a "IntelliJ IDEA.app" ."
 
 #youtube-dl
 alias yt="youtube-dl"
