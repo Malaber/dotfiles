@@ -17,11 +17,8 @@ eval "$(pyenv init --path)"
 eval "$(pyenv init -)"
 
 #node
-source /usr/share/nvm/init-nvm.sh
+# source /usr/share/nvm/init-nvm.sh
 export NODE_EXTRA_CA_CERTS="/home/dschaedler/Firma/Zertifikate/npm_ca_bundle.pem"
-
-# ssh (keychain)
-eval $(keychain --eval --quiet privat id_ed25519)
 
 # gpg
 export GPG_TTY=$(tty)
@@ -34,9 +31,6 @@ export EDITOR=vim
 
 #kubectl krew
 PATH="${PATH}:${HOME}/.krew/bin"
-
-#thefuck
-eval $(thefuck --alias)
 
 #ONEpy
 export ONEPY_DEBUGGER=pycharm
