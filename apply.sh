@@ -17,6 +17,7 @@ ln -sf $BASEDIR/.config/plasma-workspace/env/askpass.sh ~/.config/plasma-workspa
 git config --global core.excludesfile "$BASEDIR/.global_gitignore"
 git config --global user.useConfigOnly true
 git config --global alias.pushall '!git remote | xargs -L1 git push'
+git config --global alias.oldest-ancestor '!bash -c '\''diff --old-line-format='' --new-line-format='' <(git rev-list --first-parent "${1:-master}") <(git rev-list --first-parent "${2:-HEAD}") | head -1'\'' -' # https://stackoverflow.com/a/4991675/10559526
 
 sudo cp -f $BASEDIR/dschaedler.zsh-theme /usr/share/oh-my-zsh/themes/dschaedler.zsh-theme
 

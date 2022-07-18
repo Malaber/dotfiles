@@ -51,6 +51,11 @@ alias dockerkillall='docker kill $(docker ps -q)'
 alias dockerdeleteallstoppedcontainers='docker rm $(docker ps -a -q)'
 alias dockerdeleteallimages='docker rmi $(docker images -q)'
 alias dockerimagesize="docker image inspect --format='{{.Size}}'"
+alias dockerrunrm="docker run --rm --pull --entrypoint='' -it"
+
+#kubectl
+alias kubectl-qa='kubectl --kubeconfig ~/.kube/config-qa'
+alias kubectl-live='kubectl --kubeconfig ~/.kube/config-live'
 
 #lastpass
 alias lpscp='lpass show -G -c -p'
@@ -68,3 +73,9 @@ alias rm="rm -I"
 
 #vstuido code
 alias codehere="code . &"
+
+#intellij
+alias ijh="intellij-idea-ultimate-edition . &"
+
+#youtube-dl
+alias yt="youtube-dl"
