@@ -18,11 +18,15 @@ alias sourceprofile="source ~/.profile"
 #docker-compose
 alias dc="docker-compose"
 
+#make
+alias m="make"
+
 #kde
 alias plasmarestart="killall plasmashell || true && bash -c \"nohup plasmashell >/dev/null 2>&1 & exit\""
 
-#hotelkette
-alias hotelkette='/home/dschaedler/Hotelkette.sh'
+#vpn
+alias vpnon="/Users/dschaedler/Firma/VPN/openconnect-connect.sh"
+alias vpnoff="/Users/dschaedler/Firma/VPN/openconnect-disconnect.sh"
 
 #ldapbrowser
 alias ldapbrowser='javaws ~/Downloads/ldapbrowser/ldapbrowser\lbe.jar'
@@ -36,20 +40,21 @@ alias psauxgrep='ps -aux | head -1 && ps -aux | grep'
 #git
 alias git='LANG=en_GB git'
 alias gmff='git merge --ff-only'
-alias gitconfiggithub='git config user.name "Malaber" && git config user.email "32635600+Malaber@users.noreply.github.com"'
-alias gitconfigprivat='git config user.name "Malaber" && git config user.email "git@schaedler.rocks"'
-alias gitconfigfirma='git config user.name "Daniel Schädler" && git config user.email "dschaedler@united-internet.de"'
-alias gitconfiggitlab='git config user.name "Malaber" && git config user.email "gitlab@schaedler.rocks"'
+alias gitconfigprivat='git config user.name "Malaber" && git config user.email "git@schaedler.rocks" && git config user.signingkey /Users/dschaedler/.ssh/privat'
+alias gitconfigfirma='git config user.name "Daniel Schädler" && git config user.email "dschaedler@united-internet.de" && git config user.signingkey /Users/dschaedler/.ssh/id_ed25519'
+alias gitconfigfirmaglobal='git config --global user.name "Daniel Schädler" && git config --global user.email "dschaedler@united-internet.de" && git config --global user.signingkey /Users/dschaedler/.ssh/id_ed25519'
+alias gitconfigunset='git config --global --unset user.name && git config --global --unset user.email && git config --global --unset user.signingkey'
 alias gpa='git pushall'
 gitrebasi() {
     git rebase -i HEAD~"$1" --autostash
 }
 alias grba='git rebase --autostash'
+alias drücken!="git push"
 
 #docker 
-alias dockerkillall='docker kill $(docker ps -q)'
-alias dockerdeleteallstoppedcontainers='docker rm $(docker ps -a -q)'
-alias dockerdeleteallimages='docker rmi $(docker images -q)'
+alias dockerkillall='docker ps -q | xargs docker stop'
+alias dockerdeleteallstoppedcontainers='docker ps -q | xargs docker stop | xargs docker rm '
+alias dockerdeleteallimages='docker images -q | xargs docker rmi'
 alias dockerimagesize="docker image inspect --format='{{.Size}}'"
 alias dockerrunrm="docker run --rm --pull --entrypoint='' -it"
 
@@ -74,8 +79,9 @@ alias rm="rm -I"
 #vstuido code
 alias codehere="code . &"
 
-#intellij
-alias ijh="open -a "IntelliJ IDEA.app" ."
+#jetbrains
+alias pyh='open -a "PyCharm Professional Edition.app" .'
+alias ijh='open -a "IntelliJ IDEA Ultimate.app" .'
 
 #youtube-dl
 alias yt="youtube-dl"
