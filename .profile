@@ -56,7 +56,7 @@ function osum {
 #path
 export PATH=$PATH:$M2_HOME/bin:~/php:~/.local/bin
 
-#zsh 
+#zsh
 unsetopt share_history
 
 #standart editor
@@ -76,10 +76,9 @@ export DOCKER_COMPOSE_UID=$LOCAL_DOCKER_BUILD_UID
 export DOCKER_COMPOSE_GID=$LOCAL_DOCKER_BUILD_GID
 # end of removable portion
 export LOCAL_DOCKER_BUILD_PLATFORM="linux/arm64"
-export CNS_DJANGO_DEBUGGER=pycharm
 
-#ONEpy
-export ONEPY_DEBUGGER=pycharm
+# cns debugger
+export CNS_DJANGO_DEBUGGER=pycharm
 
 source ~/.aliases
 source ~/.topsecretfbiundercover
