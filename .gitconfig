@@ -1,0 +1,17 @@
+[core]
+	excludesfile = /Users/dschaedler/Git/GitHub.com/Malaber/dotfiles/.global_gitignore
+	autocrlf = input
+[user]
+	useConfigOnly = true
+[alias]
+	pushall = !git remote | xargs -L1 git push
+	oldest-ancestor = !bash -c 'diff --old-line-format= --new-line-format= <(git rev-list --first-parent \"${1:-master}\") <(git rev-list --first-parent \"${2:-HEAD}\") | head -1' -
+    mr = !sh -c 'git fetch $1 merge-requests/$2/head:mr-$1-$2 && git checkout mr-$1-$2' -
+[push]
+	autoSetupRemote = true
+[gpg]
+	format = ssh
+#[commit]
+#	gpgsign = true
+[init]
+	defaultBranch = main
