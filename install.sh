@@ -1,18 +1,14 @@
 #!/bin/bash
+SCRIPTPATH=$(readlink -f "$0")
+#echo $SCRIPTPATH
+BASEDIR=$(dirname "$SCRIPTPATH")
+#echo $BASEDIR
 
-yay -S --needed zsh oh-my-zsh-git
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 
-cd
-git clone https://github.com/gpakosz/.tmux.git
-ln -s -f .tmux/.tmux.conf
-cp .tmux/.tmux.conf.local .
-
-echo  "Read https://bbs.archlinux.org/viewtopic.php?id=127894 to disable compression and speed up package building"
-
-sudo chsh -s /bin/zsh $USER
-
-echo "" >> ~/.topsecretfbiundercover
-chmod 600 ~/.topsecretfbiundercover
+UNDERCOVER_FILE="$HOME/.topsecretfbiundercover"
+touch $UNDERCOVER_FILE
+chmod 600 $UNDERCOVER_FILE
 
 echo -e "\nINSTALL" >> $BASEDIR/LastRun
-./dotfiles/apply.sh
+./apply.sh
