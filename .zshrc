@@ -1,19 +1,20 @@
-source $(brew --prefix)/share/antigen/antigen.zsh
-
-# Load the oh-my-zsh's library.
-antigen use oh-my-zsh
-
-# Load bundles from external repos
-antigen bundles <<EOBUNDLES
-    zsh-users/zsh-autosuggestions
-    zsh-users/zsh-syntax-highlighting
-    zsh-users/zsh-completions
+# Load the oh-my-zsh configlibrary.
+export ZSH=$HOME/.oh-my-zsh
+ZSH_THEME="dschaedler"
+plugins=(
     git
-EOBUNDLES
+)
 
-antigen theme dschaedler
+source $ZSH/oh-my-zsh.sh
+# zsh-autosuggestions https://github.com/zsh-users/zsh-autosuggestions
+source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+# zsh-syntax-highlighting https://github.com/zsh-users/zsh-syntax-highlighting/blob/master/INSTALL.md
+source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+# zsh-completions https://github.com/zsh-users/zsh-completions
+if type brew &>/dev/null; then
+    FPATH=$(brew --prefix)/share/zsh-completions:$FPATH
 
-# 3. Commit Antigen Configuration
-antigen apply
-
+    autoload -Uz compinit
+    compinit
+fi
 source ~/.profile

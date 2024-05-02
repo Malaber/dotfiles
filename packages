@@ -1,2 +1,8 @@
 bat
 htop
+rbenv
+pyenv
+bat
+zsh-syntax-highlighting
+zsh-autosuggestions
+zsh-completions
