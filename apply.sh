@@ -19,6 +19,9 @@ THEMES_FOLDER="$HOME/.oh-my-zsh/custom/themes"
 mkdir -p $THEMES_FOLDER
 ln -sf $BASEDIR/dschaedler.zsh-theme $THEMES_FOLDER/dschaedler.zsh-theme
 
+UNDERCOVER_FILE="$HOME/.topsecretfbiundercover"
+touch $UNDERCOVER_FILE
+chmod 600 $UNDERCOVER_FILE
 
 echo -e "\nAPPLY" >> $BASEDIR/LastRun
 date >> $BASEDIR/LastRun
