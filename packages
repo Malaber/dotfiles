@@ -1,14 +1,2 @@
-rbenv
-pyenv
-ruby-build
-spectacle
-zsh
-oh-my-zsh-git
-kate
-konsole
-barrier
-firefox
-chromium
-xclip
-plasma5-applets-netspeed
-ksshaskpass
+bat
+htop
