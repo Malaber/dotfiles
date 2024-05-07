@@ -6,4 +6,5 @@ bat
 zsh-syntax-highlighting
 zsh-autosuggestions
 zsh-completions
+helm
 stern
