@@ -82,6 +82,7 @@ alias codehere="code . &"
 #jetbrains
 alias pyh='open -a "PyCharm Professional Edition.app" .'
 alias ijh='open -a "IntelliJ IDEA Ultimate.app" .'
+alias wsh='open -a "WebStorm.app" .'
 
 #youtube-dl
 alias yt="youtube-dl"
