@@ -20,9 +20,7 @@ export PYENV_ROOT="$HOME/.pyenv"
 export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv init --path)"
 eval "$(pyenv init -)"
-#CERT_PATH=$(python -m certifi)
-#export SSL_CERT_FILE=${CERT_PATH}
-#export REQUESTS_CA_BUNDLE=${CERT_PATH}
+export REQUESTS_CA_BUNDLE="/Users/dschaedler/Zertifikate/1und1PUKIRootCA1-chain.pem"
 
 #conda (python)
 #export PATH="$PATH:/opt/homebrew/anaconda3/bin"
