@@ -64,7 +64,7 @@ export EDITOR=vim
 PATH="${PATH}:${HOME}/.krew/bin"
 
 #kubectl config
-export KUBECONFIG="${HOME}/.kube/config-qa:${HOME}/.kube/config-live"
+export KUBECONFIG="${HOME}/.kube/config"
 
 # cookiecutter template
 export LOCAL_DOCKER_BUILD_UID=$(id -u)

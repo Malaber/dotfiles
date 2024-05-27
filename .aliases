@@ -51,7 +51,7 @@ gitrebasi() {
 alias grba='git rebase --autostash'
 alias drücken!="git push"
 
-#docker 
+#docker
 alias dockerkillall='docker ps -q | xargs docker stop'
 alias dockerdeleteallstoppedcontainers='docker ps -q | xargs docker stop | xargs docker rm '
 alias dockerdeleteallimages='docker images -q | xargs docker rmi'
@@ -61,6 +61,11 @@ alias dockerrunrm="docker run --rm --pull --entrypoint='' -it"
 #kubectl
 alias kubectl-qa='kubectl --kubeconfig ~/.kube/config-qa'
 alias kubectl-live='kubectl --kubeconfig ~/.kube/config-live'
+alias kubectl-lao='kubectl --kubeconfig ~/.kube/lao_k8s'
+
+alias kubectlswitchqa='ln -sf ~/.kube/config-qa ~/.kube/config'
+alias kubectlswitchlive='ln -sf ~/.kube/config-live ~/.kube/config'
+alias kubectlswitchlao_k8s='ln -sf ~/.kube/lao_k8s ~/.kube/config'
 
 #lastpass
 alias lpscp='lpass show -G -c -p'
@@ -76,7 +81,7 @@ alias cdpa="cd /home/dschaedler/Git/Github.com/Malaber/praxisarbeit-sem3"
 #rm safety
 alias rm="rm -I"
 
-#vstuido code
+#vscode
 alias codehere="code . &"
 
 #jetbrains
