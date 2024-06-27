@@ -56,7 +56,7 @@ alias dockerkillall='docker ps -q | xargs docker stop'
 alias dockerdeleteallstoppedcontainers='docker ps -q | xargs docker stop | xargs docker rm '
 alias dockerdeleteallimages='docker images -q | xargs docker rmi'
 alias dockerimagesize="docker image inspect --format='{{.Size}}'"
-alias dockerrunrm="docker run --rm --pull --entrypoint='' -it"
+alias dockerrunrm="docker run --rm --pull=always --entrypoint='' -it"
 
 #kubectl
 alias kubectl-qa='kubectl --kubeconfig ~/.kube/config-qa'
