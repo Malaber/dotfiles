@@ -18,3 +18,6 @@ if type brew &>/dev/null; then
     compinit
 fi
 source ~/.profile
+
+test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh" || true
+
