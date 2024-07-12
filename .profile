@@ -20,7 +20,7 @@ export PYENV_ROOT="$HOME/.pyenv"
 export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv init --path)"
 eval "$(pyenv init -)"
-# export REQUESTS_CA_BUNDLE="/Users/dschaedler/Zertifikate/1und1PUKIRootCA1-chain.pem"
+export REQUESTS_CA_BUNDLE="$HOME/etc_ssl_and_puki.pem"
 
 #conda (python)
 #export PATH="$PATH:/opt/homebrew/anaconda3/bin"
@@ -29,7 +29,7 @@ eval "$(pyenv init -)"
 export NVM_DIR="$HOME/.nvm"
 [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"  # This loads nvm
 [ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
-export NODE_EXTRA_CA_CERTS="/Users/dschaedler/Zertifikate/1und1PUKIRootCA1-chain.pem"
+export NODE_EXTRA_CA_CERTS="$HOME/etc_ssl_and_puki.pem"
 
 # gpg
 export GPG_TTY=$(tty)
