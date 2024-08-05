@@ -6,6 +6,9 @@ alias sshconfig="$EDITOR ~/.ssh/config"
 # bat
 alias cat='bat --plain --paging never'
 
+# lsd
+alias ls='lsd'
+
 #update script
 alias update='yay -Syu && sudo systemctl start clientinfocollector.service'
 
