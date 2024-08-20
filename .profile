@@ -46,7 +46,7 @@ ssh-add-all # add keys on initial .profile load
 ## osum
 # you need to add a password named "OSUM" in your macOS keychain
 function osum {
-    osum_expect
+    $HOME/osum_plus/bin/ekca-ssh-init dschaedler
     ssh-add-all
 }
 
