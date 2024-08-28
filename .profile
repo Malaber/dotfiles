@@ -1,6 +1,3 @@
-#maven
-export M2_HOME=/opt/maven
-
 #intelliJ
 export IDEA_JDK=/usr/lib/jvm/intellij-jdk
 
@@ -77,6 +74,14 @@ export LOCAL_DOCKER_BUILD_PLATFORM="linux/arm64"
 
 # cns debugger
 export CNS_DJANGO_DEBUGGER=pycharm
+
+#maven
+export M2_HOME=/opt/maven
+
+# java
+#export JAVA_HOME=`/usr/libexec/java_home -v 1.8`
+export JAVA_HOME=/opt/homebrew/opt/openjdk@11
+export PATH="$PATH:$JAVA_HOME/bin"
 
 source ~/.aliases
 source ~/.topsecretfbiundercover
