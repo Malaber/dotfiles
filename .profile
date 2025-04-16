@@ -18,6 +18,14 @@ export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv init --path)"
 eval "$(pyenv init -)"
 export REQUESTS_CA_BUNDLE="$HOME/etc_ssl_and_puki.pem"
+# tkinter
+export PATH="$PATH:/usr/local/opt/tcl-tk/bin"
+export LDFLAGS="-L$(brew --prefix tcl-tk)/lib"
+export CPPFLAGS="-I$(brew --prefix tcl-tk)/include"
+export PKG_CONFIG_PATH="$(brew --prefix tcl-tk)/lib/pkgconfig"
+
+#ansible
+export PATH="$PATH:$HOME/ansible/venv/bin"
 
 #conda (python)
 #export PATH="$PATH:/opt/homebrew/anaconda3/bin"
@@ -71,6 +79,9 @@ export DOCKER_COMPOSE_UID=$LOCAL_DOCKER_BUILD_UID
 export DOCKER_COMPOSE_GID=$LOCAL_DOCKER_BUILD_GID
 # end of removable portion
 export LOCAL_DOCKER_BUILD_PLATFORM="linux/arm64"
+
+# docker compose
+export COMPOSE_MENU=0
 
 # cns debugger
 export CNS_DJANGO_DEBUGGER=pycharm
