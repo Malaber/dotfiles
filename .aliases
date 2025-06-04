@@ -4,16 +4,10 @@ alias sshaddauto='ssh-add ~/.ssh/id_rsa ~/.ssh/privat'
 alias sshconfig="$EDITOR ~/.ssh/config"
 
 # bat
-alias cat='bat --plain --paging never'
+alias cat='batcat --plain --paging never'
 
 # lsd
 alias ls='lsd'
-
-#update script
-alias update='yay -Syu && sudo systemctl start clientinfocollector.service'
-
-#add DNS to resolve.conf
-alias nameserverstuff='echo "nameserver 1.1.1.1\nnameserver 8.8.8.8" | sudo tee /etc/resolv.conf'
 
 # reload .profile file
 alias sourceprofile="source ~/.profile"
@@ -23,9 +17,6 @@ alias dc="docker-compose"
 
 #make
 alias m="make"
-
-#kde
-alias plasmarestart="killall plasmashell || true && bash -c \"nohup plasmashell >/dev/null 2>&1 & exit\""
 
 #vpn
 alias vpnon="/Users/dschaedler/Firma/VPN/openconnect-connect.sh"
@@ -44,15 +35,12 @@ alias psauxgrep='ps -aux | head -1 && ps -aux | grep'
 alias git='LANG=en_GB git'
 alias gmff='git merge --ff-only'
 alias gitconfigprivat='git config user.name "Malaber" && git config user.email "git@schaedler.rocks" && git config user.signingkey /Users/dschaedler/.ssh/privat'
-alias gitconfigfirma='git config user.name "Daniel Schädler" && git config user.email "dschaedler@united-internet.de" && git config user.signingkey /Users/dschaedler/.ssh/id_ed25519'
-alias gitconfigfirmaglobal='git config --global user.name "Daniel Schädler" && git config --global user.email "dschaedler@united-internet.de" && git config --global user.signingkey /Users/dschaedler/.ssh/id_ed25519'
 alias gitconfigunset='git config --global --unset user.name && git config --global --unset user.email && git config --global --unset user.signingkey'
 alias gpa='git pushall'
 gitrebasi() {
     git rebase -i HEAD~"$1" --autostash
 }
 alias grba='git rebase --autostash'
-alias drücken!="git push"
 
 #docker
 alias dockerkillall='docker ps -q | xargs docker stop'
@@ -77,9 +65,6 @@ alias lps='lpass show -G'
 
 #make
 alias remake='make realclean && make'
-
-#current stuff
-alias cdpa="cd /home/dschaedler/Git/Github.com/Malaber/praxisarbeit-sem3"
 
 #rm safety
 alias rm="rm -I"

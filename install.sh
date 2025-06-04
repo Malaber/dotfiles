@@ -11,4 +11,5 @@ touch $UNDERCOVER_FILE
 chmod 600 $UNDERCOVER_FILE
 
 echo -e "\nINSTALL" >> $BASEDIR/LastRun
+date >> $BASEDIR/LastRun
 ./apply.sh
