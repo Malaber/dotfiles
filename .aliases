@@ -35,6 +35,7 @@ alias psauxgrep='ps -aux | head -1 && ps -aux | grep'
 alias git='LANG=en_GB git'
 alias gmff='git merge --ff-only'
 alias gitconfigprivat='git config user.name "Malaber" && git config user.email "git@schaedler.rocks" && git config user.signingkey /Users/dschaedler/.ssh/privat'
+alias gitconfignetlution='git config user.name "Daniel Schädler" && git config user.email "daniel.schaedler@netlution.de"'
 alias gitconfigunset='git config --global --unset user.name && git config --global --unset user.email && git config --global --unset user.signingkey'
 alias gpa='git pushall'
 gitrebasi() {
@@ -48,6 +49,12 @@ alias dockerdeleteallstoppedcontainers='docker ps -q | xargs docker stop | xargs
 alias dockerdeleteallimages='docker images -q | xargs docker rmi'
 alias dockerimagesize="docker image inspect --format='{{.Size}}'"
 alias dockerrunrm="docker run --rm --pull=always --entrypoint='' -it"
+alias dockerrunrmlocal="docker run --rm --entrypoint='' -it"
+
+dockerfilereconstruction() {
+  local image=$1
+  docker history --no-trunc --format '{{.ID}} {{.CreatedBy}}' "$image" | tac | nl
+}
 
 #kubectl
 alias kubectl-qa='kubectl --kubeconfig ~/.kube/config-qa'
@@ -57,6 +64,8 @@ alias kubectl-lao='kubectl --kubeconfig ~/.kube/lao_k8s'
 alias kubectlswitchqa='ln -sf ~/.kube/config-qa ~/.kube/config'
 alias kubectlswitchlive='ln -sf ~/.kube/config-live ~/.kube/config'
 alias kubectlswitchlao_k8s='ln -sf ~/.kube/lao_k8s ~/.kube/config'
+
+alias k="kubectl"
 
 #lastpass
 alias lpscp='lpass show -G -c -p'
