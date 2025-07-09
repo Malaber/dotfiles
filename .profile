@@ -4,6 +4,9 @@ export IDEA_JDK=/usr/lib/jvm/intellij-jdk
 #histcontrol (space before a command does not add it to command history)
 export HISTCONTROL=ignorespace
 
+# brew
+eval $(/home/linuxbrew/.linuxbrew/bin/brew shellenv)
+
 # #ruby
 # eval "$(rbenv init -)"
 # export PATH="$HOME/.rbenv/bin:$PATH"
