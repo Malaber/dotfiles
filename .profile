@@ -34,13 +34,29 @@ export PATH="$PATH:$HOME/ansible/venv/bin"
 # export GPG_TTY=$(tty)
 
 # ssh
+# Auto-detect or start ssh-agent
+socket=$(find /tmp/ssh-* -type s -name "*agent*" 2>/dev/null | head -n1)
+pid=$(ps aux | grep "[s]sh-agent" | head -n1 | awk '{print $2}')
 
-## reusable function to add all ssh keys (used in osum and standalone)
+if [ -n "$socket" ] && [ -n "$pid" ]; then
+  export SSH_AUTH_SOCK="$socket"
+  export SSH_AGENT_PID="$pid"
+  echo "Reusing existing ssh-agent (pid $pid)"
+else
+  eval "$(ssh-agent -s)"
+  echo "Started new ssh-agent"
+fi
+
+# Reusable function to add only missing SSH keys
 function ssh-add-all {
-    ssh-add --apple-use-keychain ~/.ssh/privat
-    ssh-add --apple-use-keychain ~/.ssh/id_ed25519
+    local key
+    for key in ~/.ssh/id_ed25519; do
+        if ! ssh-add -l | grep -q "$(ssh-keygen -lf "$key" | awk '{print $2}')"; then
+            ssh-add "$key"
+        fi
+    done
 }
-# ssh-add-all # add keys on initial .profile load
+ssh-add-all # add keys on initial .profile load
 
 #zsh
 unsetopt share_history
