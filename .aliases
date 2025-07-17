@@ -81,11 +81,5 @@ alias rm="rm -I"
 #vscode
 alias codehere="code . &"
 
-#jetbrains
-alias pyh='open -a "PyCharm Professional Edition.app" .'
-alias ijh='open -a "IntelliJ IDEA Ultimate.app" .'
-alias wsh='open -a "WebStorm.app" .'
-alias rmh='open -a "RubyMine.app" .'
-
 #youtube-dl
 alias yt="youtube-dl"
