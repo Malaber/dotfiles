@@ -56,7 +56,7 @@ function ssh-add-all {
         fi
     done
 }
-ssh-add-all # add keys on initial .profile load
+ssh-add-all || true # add keys on initial .profile load, ignore failure
 
 #zsh
 unsetopt share_history
