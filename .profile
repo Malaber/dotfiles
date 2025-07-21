@@ -70,7 +70,7 @@ PATH="${PATH}:${HOME}/.krew/bin"
 #kubectl config
 export KUBECONFIG="${HOME}/.kube/config"
 
-# docker compose
+# podman compose
 export COMPOSE_MENU=0
 
 source ~/.aliases
