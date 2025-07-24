@@ -81,5 +81,8 @@ alias rm="rm -I"
 #vscode
 alias codehere="code . &"
 
+#windows
+alias explorer="explorer.exe ."
+
 #youtube-dl
 alias yt="youtube-dl"
