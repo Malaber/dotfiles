@@ -86,3 +86,14 @@ alias explorer="explorer.exe ."
 
 #youtube-dl
 alias yt="youtube-dl"
+
+# Intercept calls to 'powershell' and block them
+powershell() {
+  echo "Error: Direct calls to 'powershell.exe' are blocked for security reasons." >&2
+  echo "If you need to run the actual PowerShell, look into dotfiles." >&2
+  return 1 # Indicate failure
+}
+
+# Alias to call the actual powershell.exe when needed
+# This uses the full Windows path to bypass the 'powershell' function above.
+alias powershell_actual='/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe'
