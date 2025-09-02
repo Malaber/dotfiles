@@ -82,10 +82,13 @@ alias rm="rm -I"
 alias codehere="code . &"
 
 #jetbrains
-alias pyh='open -a "PyCharm Professional Edition.app" .'
-alias ijh='open -a "IntelliJ IDEA Ultimate.app" .'
-alias wsh='open -a "WebStorm.app" .'
-alias rmh='open -a "RubyMine.app" .'
+JB_PATH='/mnt/c/Users/daniels/AppData/Local/Programs'
+
+alias pyh="$JB_PATH/PyCharm/bin/pycharm64.exe ."
+alias ijh="$JB_PATH/IntelliJ\ IDEA\ Ultimate/bin/idea64.exe ."
+alias wsh="$JB_PATH/WebStorm/bin/webstorm64.exe ."
+alias rmh="$JB_PATH/RubyMine/bin/rubymine64.exe ."
+alias glh="$JB_PATH/GoLand/bin/goland64.exe ."
 
 #windows
 alias explorer="explorer.exe ."
