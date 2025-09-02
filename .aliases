@@ -88,7 +88,7 @@ alias explorer="explorer.exe ."
 alias yt="youtube-dl"
 
 # Intercept calls to 'powershell' and block them
-powershell() {
+powershell.exe() {
   echo "Error: Direct calls to 'powershell.exe' are blocked for security reasons." >&2
   echo "If you need to run the actual PowerShell, look into dotfiles." >&2
   return 1 # Indicate failure
