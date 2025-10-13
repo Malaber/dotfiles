@@ -119,6 +119,9 @@ powershell.exe() {
   return 1 # Indicate failure
 }
 
+# windows shenanigans
+alias d2u="find . -type f -print0 | xargs -0 dos2unix"
+
 # Alias to call the actual powershell.exe when needed
 # This uses the full Windows path to bypass the 'powershell' function above.
 alias powershell_actual='/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe'
