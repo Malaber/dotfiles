@@ -9,6 +9,7 @@ ln -sf $BASEDIR/.profile ~/
 ln -sf $BASEDIR/.aliases ~/
 ln -sf $BASEDIR/.tmux.conf.local ~/
 ln -sf $BASEDIR/.zshrc ~/
+ln -sf $BASEDIR ~/.dotfiles
 
 git config --global core.excludesfile "$BASEDIR/.global_gitignore"
 git config --global user.useConfigOnly true
