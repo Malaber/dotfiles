@@ -18,6 +18,11 @@ git config --global alias.oldest-ancestor '!bash -c '\''diff --old-line-format='
 git config --global push.autoSetupRemote true
 git config --global alias.pushfwl "push --force-with-lease"
 
+# force lf everywhere
+git config --global core.autocrlf false
+git config --global core.eol lf
+
+
 THEMES_FOLDER="$HOME/.oh-my-zsh/custom/themes"
 mkdir -p $THEMES_FOLDER
 ln -sf $BASEDIR/dschaedler.zsh-theme $THEMES_FOLDER/dschaedler.zsh-theme
