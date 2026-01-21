@@ -1,0 +1,22 @@
+packages:
+  darwin:
+    brews:
+      - pyenv
+      - bat
+      - htop
+      - rbenv
+      - bat
+      - zsh-syntax-highlighting
+      - zsh-autosuggestions
+      - zsh-completions
+      - lsd
+    casks:
+      - alt-tab
+      - bitwarden
+      - google-chrome
+      - jetbrains-toolbox
+      - iterm2
+      - rectangle
+      - gemini-cli
+      - chezmoi
+      - command-x
