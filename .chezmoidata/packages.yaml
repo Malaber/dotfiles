@@ -10,6 +10,8 @@ packages:
       - zsh-autosuggestions
       - zsh-completions
       - lsd
+      - gemini-cli
+      - chezmoi
     casks:
       - alt-tab
       - bitwarden
@@ -17,6 +19,4 @@ packages:
       - jetbrains-toolbox
       - iterm2
       - rectangle
-      - gemini-cli
-      - chezmoi
       - command-x

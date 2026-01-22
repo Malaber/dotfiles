@@ -33,13 +33,13 @@ alias grba='git rebase --autostash'
 alias dockerkillall='docker ps -q | xargs docker stop'
 alias dockerdeleteallstoppedcontainers='docker ps -q | xargs docker stop | xargs docker rm '
 alias dockerdeleteallimages='docker images -q | xargs docker rmi'
-alias dockerimagesize="docker image inspect --format='{{.Size}}'"
+alias dockerimagesize="docker image inspect --format='{{ "{{.Size}}" }}'"
 alias dockerrunrm="docker run --rm --pull=always --entrypoint='' -it"
 alias dockerrunrmlocal="docker run --rm --entrypoint='' -it"
 
 containerfilereconstruction() {
   local image=$1
-  docker history --no-trunc --format '{{.ID}} {{.CreatedBy}}' "$image" | tac | nl
+  docker history --no-trunc --format '{{ "{{.ID}} {{.CreatedBy}}" }}' "$image" | tac | nl
 }
 
 #docker-compose
@@ -49,13 +49,13 @@ alias dc="docker-compose"
 alias podmankillall='podman ps -q | xargs podman stop'
 alias podmandeleteallstoppedcontainers='podman ps -q | xargs podman stop | xargs podman rm '
 alias podmandeleteallimages='podman images -q | xargs podman rmi'
-alias podmanimagesize="podman image inspect --format='{{.Size}}'"
+alias podmanimagesize="podman image inspect --format='{{ "{{.Size}}" }}'"
 alias podmanrunrm="podman run --rm --pull=always --entrypoint='' -it"
 alias podmanrunrmlocal="podman run --rm --entrypoint='' -it"
 
 containerfilereconstruction() {
   local image=$1
-  podman history --no-trunc --format '{{.ID}} {{.CreatedBy}}' "$image" | tac | nl
+  podman history --no-trunc --format '{{ "{{.ID}} {{.CreatedBy}}" }}' "$image" | tac | nl
 }
 
 #podman-compose
