@@ -1,6 +1,4 @@
-alias sshaddfirm='ssh-add ~/.ssh/id_rsa'
-alias sshaddpriv='ssh-add ~/.ssh/privat'
-alias sshaddauto='ssh-add ~/.ssh/id_rsa ~/.ssh/privat'
+# ssh
 alias sshconfig="$EDITOR ~/.ssh/config"
 
 # bat
@@ -10,20 +8,11 @@ alias cat='batcat --plain --paging never'
 alias ls='lsd'
 
 # reload .profile file
-alias sourceprofile="source ~/.profile"
+alias sourceprofile="source ~/.custom_profile"
 
 #make
 alias m="make"
-
-#vpn
-alias vpnon="/Users/dschaedler/Firma/VPN/openconnect-connect.sh"
-alias vpnoff="/Users/dschaedler/Firma/VPN/openconnect-disconnect.sh"
-
-#ldapbrowser
-alias ldapbrowser='javaws ~/Downloads/ldapbrowser/ldapbrowser\lbe.jar'
-
-#jit
-alias jit='javaws ~/Firma/intranet-tool.jnlp &'
+alias remake='make realclean && make'
 
 #ps aux
 alias psauxgrep='ps -aux | head -1 && ps -aux | grep'
@@ -31,8 +20,8 @@ alias psauxgrep='ps -aux | head -1 && ps -aux | grep'
 #git
 alias git='LANG=en_GB git'
 alias gmff='git merge --ff-only'
-alias gitconfigprivat='git config user.name "Malaber" && git config user.email "git@schaedler.rocks" && git config user.signingkey /Users/dschaedler/.ssh/privat'
-alias gitconfignetlution='git config user.name "Daniel Schädler" && git config user.email "daniel.schaedler@netlution.de"'
+alias gitconfigprivat='git config user.name "Malaber" && git config user.email "git@schaedler.rocks" && git config user.signingkey /Users/$USER/.ssh/privat'
+alias gitconfignetlution='git config user.name "Daniel Schädler" && git config user.email "daniel.schaedler@netlution.de" && git config user.signingkey /Users/$USER/.ssh/id_ed25519'
 alias gitconfigunset='git config --global --unset user.name && git config --global --unset user.email && git config --global --unset user.signingkey'
 alias gpa='git pushall'
 gitrebasi() {
@@ -83,14 +72,6 @@ alias kubectlswitchlao_k8s='ln -sf ~/.kube/lao_k8s ~/.kube/config'
 
 alias k="kubectl"
 
-#lastpass
-alias lpscp='lpass show -G -c -p'
-alias lpsp='lpass show -G -p'
-alias lps='lpass show -G'
-
-#make
-alias remake='make realclean && make'
-
 #rm safety
 alias rm="rm -I"
 
@@ -98,6 +79,7 @@ alias rm="rm -I"
 alias codehere="code . &"
 
 #jetbrains
+{{ if eq .chezmoi.os "windows" }}
 JB_PATH='/mnt/c/Users/daniels/AppData/Local/Programs'
 
 alias pyh="$JB_PATH/PyCharm/bin/pycharm64.exe ."
@@ -105,12 +87,18 @@ alias ijh="$JB_PATH/IntelliJ\ IDEA\ Ultimate/bin/idea64.exe ."
 alias wsh="$JB_PATH/WebStorm/bin/webstorm64.exe ."
 alias rmh="$JB_PATH/RubyMine/bin/rubymine64.exe ."
 alias glh="$JB_PATH/GoLand/bin/goland64.exe ."
+{{ else if eq .chezmoi.os "linux" }}
+{{ else if eq .chezmoi.os "darwin" }}
+alias pyh="open -na 'PyCharm.app' --args ."
+alias ijh="open -na 'IntelliJ IDEA.app' --args ."
+alias wsh="open -na 'WebStorm.app' --args ."
+alias rmh="open -na 'RubyMine.app' --args ."
+alias glh="open -na 'GoLand.app' --args ."
+{{ end }}
 
+{{ if eq .chezmoi.os "windows" }}
 #windows
 alias explorer="explorer.exe ."
-
-#youtube-dl
-alias yt="youtube-dl"
 
 # Intercept calls to 'powershell' and block them
 powershell.exe() {
@@ -125,3 +113,7 @@ alias d2u="find . -type f -print0 | xargs -0 dos2unix"
 # Alias to call the actual powershell.exe when needed
 # This uses the full Windows path to bypass the 'powershell' function above.
 alias powershell_actual='/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe'
+{{ end }}
+
+#youtube-dl
+alias yt="youtube-dl"
