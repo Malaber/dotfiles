@@ -19,10 +19,10 @@ export HISTCONTROL=ignorespace
 #zsh
 unsetopt share_history
 
-# #ruby
-# eval "$(rbenv init -)"
-# export PATH="$HOME/.rbenv/bin:$PATH"
-# #PATH="$(ruby -r rubygems -e 'puts Gem.user_dir')/bin:$PATH"
+# ruby
+eval "$(rbenv init -)"
+export PATH="$HOME/.rbenv/bin:$PATH"
+#PATH="$(ruby -r rubygems -e 'puts Gem.user_dir')/bin:$PATH"
 
 #python
 export PYENV_ROOT="$HOME/.pyenv"
