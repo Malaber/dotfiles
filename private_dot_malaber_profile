@@ -1,23 +1,25 @@
-# Load the oh-my-zsh configlibrary.
-export ZSH=$HOME/.oh-my-zsh
-export ZSH_CUSTOM=$HOME/.zsh_custom
-ZSH_THEME="dschaedler"
-plugins=(
-    git
-)
+if [[ -n "$ZSH_NAME" && "$ZSH_NAME" == "zsh" ]]; then
+    # Load the oh-my-zsh configlibrary.
+    export ZSH=$HOME/.oh-my-zsh
+    export ZSH_CUSTOM=$HOME/.zsh_custom
+    ZSH_THEME="dschaedler"
+    plugins=(
+        git
+    )
 
-source $ZSH/oh-my-zsh.sh
-export DISABLE_AUTO_UPDATE="true" # disable omz auto updates, this is done by chezmoi
+    source $ZSH/oh-my-zsh.sh
+    export DISABLE_AUTO_UPDATE="true" # disable omz auto updates, this is done by chezmoi
 
-test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh" || echo "iTerm shell integration missing, skipping..."
+    test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh" || echo "iTerm shell integration missing, skipping..."
+
+    #histcontrol (space before a command does not add it to command history)
+    export HISTCONTROL=ignorespace
+    #zsh
+    unsetopt share_history
+fi
 
 #intelliJ
 export IDEA_JDK=/usr/lib/jvm/intellij-jdk
-
-#histcontrol (space before a command does not add it to command history)
-export HISTCONTROL=ignorespace
-#zsh
-unsetopt share_history
 
 # ruby
 eval "$(rbenv init -)"
