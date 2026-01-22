@@ -2,7 +2,7 @@
 alias sshconfig="$EDITOR ~/.ssh/config"
 
 # bat
-alias cat='batcat --plain --paging never'
+alias cat='bat{{ if eq .chezmoi.os "linux" }}cat{{ end }} --plain --paging never'
 
 # lsd
 alias ls='lsd'
