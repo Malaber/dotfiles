@@ -19,9 +19,6 @@ export HISTCONTROL=ignorespace
 #zsh
 unsetopt share_history
 
-# brew
-eval $(/home/linuxbrew/.linuxbrew/bin/brew shellenv)
-
 # #ruby
 # eval "$(rbenv init -)"
 # export PATH="$HOME/.rbenv/bin:$PATH"
@@ -33,26 +30,12 @@ command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv init --path)"
 eval "$(pyenv init -)"
 
-# ssh
-# Auto-detect or start ssh-agent
-socket=$(find /tmp/ssh-* -type s -name "*agent*" 2>/dev/null | head -n1)
-pid=$(ps aux | grep "[s]sh-agent" | head -n1 | awk '{print $2}')
-
-if [ -n "$socket" ] && [ -n "$pid" ]; then
-  export SSH_AUTH_SOCK="$socket"
-  export SSH_AGENT_PID="$pid"
-  echo "Reusing existing ssh-agent (pid $pid)"
-else
-  eval "$(ssh-agent -s)"
-  echo "Started new ssh-agent"
-fi
-
 # Reusable function to add only missing SSH keys
 function ssh-add-all {
     local key
     for key in ~/.ssh/id_ed25519; do
         if ! ssh-add -l | grep -q "$(ssh-keygen -lf "$key" | awk '{print $2}')"; then
-            ssh-add "$key"
+            ssh-add --apple-use-keychain "$key"
         fi
     done
 }
