@@ -1,5 +1,14 @@
 #!/bin/bash
 
+brew bundle --file=/dev/stdin <<EOF
+{{ range .packages.darwin.brews -}}
+brew {{ . | quote }}
+{{ end -}}
+{{ range .packages.darwin.casks -}}
+cask {{ . | quote }}
+{{ end -}}
+EOF
+
 UNDERCOVER_FILE="$HOME/.topsecretfbiundercover"
 touch $UNDERCOVER_FILE
 chmod 600 $UNDERCOVER_FILE
