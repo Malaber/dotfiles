@@ -9,7 +9,7 @@ plugins=(
 source $ZSH/oh-my-zsh.sh
 export DISABLE_AUTO_UPDATE="true" # disable omz auto updates, this is done by chezmoi
 
-test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh" || true
+test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh" || echo "iTerm shell integration missing, skipping..."
 
 #intelliJ
 export IDEA_JDK=/usr/lib/jvm/intellij-jdk
