@@ -14,3 +14,8 @@
     type = "file"
     url = "https://iterm2.com/shell_integration/zsh"
     refreshPeriod = "24h"
+    refreshPeriod = "24h"
+[".podsmute"]
+    type = "git-repo"
+    url = "https://github.com/cyanicr/podsmute.git"
+    refreshPeriod = "24h"

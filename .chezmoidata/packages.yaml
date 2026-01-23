@@ -12,6 +12,7 @@ packages:
       - lsd # needs cask font-hack-nerd-font for icons to work properly
       - gemini-cli
       - chezmoi
+      - xcodegen
     casks:
       - alt-tab
       - bitwarden
