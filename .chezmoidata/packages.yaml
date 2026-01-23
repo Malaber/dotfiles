@@ -9,8 +9,7 @@ packages:
       - zsh-syntax-highlighting
       - zsh-autosuggestions
       - zsh-completions
-      - lsd # needs font-hack-nerd-font for icons to work properly
-      - font-hack-nerd-font # this needs to be enabled in iTerm2 manually
+      - lsd # needs cask font-hack-nerd-font for icons to work properly
       - gemini-cli
       - chezmoi
     casks:
@@ -21,3 +20,4 @@ packages:
       - iterm2
       - rectangle
       - command-x
+      - font-hack-nerd-font # this needs to be enabled in iTerm2 manually
