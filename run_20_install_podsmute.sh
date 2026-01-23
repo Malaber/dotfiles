@@ -2,10 +2,10 @@
 set -eu
 
 # This script builds and installs podsmute.
-# It assumes it is run from the root of the dotfiles repository where .podsmute is cloned.
+# It assumes the podsmute source code is in ~/.podsmute, cloned by chezmoi.
 
-PODSMUTE_DIR="~/.podsmute"
-INSTALL_TARGET="~/.local/bin"
+PODSMUTE_DIR="$HOME/.podsmute"
+INSTALL_TARGET="$HOME/.local/bin"
 
 if ! command -v xcodegen >/dev/null 2>&1; then
     echo "xcodegen not found. Please install with 'brew install xcodegen'" >&2
@@ -14,7 +14,7 @@ fi
 
 if [ ! -d "$PODSMUTE_DIR" ]; then
     echo "Directory $PODSMUTE_DIR not found." >&2
-    echo "Please run 'chezmoi apply' to fetch the podsmute source code." >&2
+    echo "Please run 'chezmoi apply' again to fetch the podsmute source code." >&2
     exit 1
 fi
 
