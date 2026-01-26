@@ -1,5 +1,7 @@
 packages:
   darwin:
+    taps:
+      - bwya77/tap
     brews:
       - pyenv
       - bat
@@ -22,3 +24,5 @@ packages:
       - rectangle
       - command-x
       - font-hack-nerd-font # this needs to be enabled in iTerm2 manually
+      - dockanchor
+      - jordanbaird-ice
