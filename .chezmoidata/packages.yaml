@@ -15,6 +15,9 @@ packages:
       - gemini-cli
       - chezmoi
       - xcodegen
+      - ncdu
+      - docker
+      - colima
     casks:
       - alt-tab
       - bitwarden
