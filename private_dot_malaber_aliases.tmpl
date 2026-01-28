@@ -120,6 +120,7 @@ alias yt="youtube-dl"
 
 # python
 alias svenv='if [ -d ".venv" ]; then source .venv/bin/activate; elif [ -d "venv" ]; then source venv/bin/activate; else echo "No .venv or venv found."; fi'
+alias nvenv='if [ ! -d ".venv" ] && [ ! -d "venv" ]; then python3 -m venv venv && echo "Created venv"; else echo "A venv already exists."; fi'
 
 # microphone
 alias mutemic='osascript -e "set volume input volume 0"'
