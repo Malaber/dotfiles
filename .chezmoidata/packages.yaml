@@ -18,6 +18,7 @@ packages:
       - ncdu
       - docker
       - colima
+      - coreutils
     casks:
       - alt-tab
       - bitwarden
