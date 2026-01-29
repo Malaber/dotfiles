@@ -28,6 +28,36 @@ gitrebasi() {
     git rebase -i HEAD~"$1" --autostash
 }
 alias grba='git rebase --autostash'
+# git cloning helper
+_generic_git_clone() {
+    local host="$1"           # e.g., gitlab.com
+    local repo_full_path="$2" # e.g., namespace/project
+    local base_root="$HOME/Git"
+    local target_dir="$base_root/$host/$repo_full_path"
+
+    # 1. Check if the directory already exists
+    if [ -d "$target_dir" ]; then
+        echo "Aborting: Directory already exists at $target_dir"
+        return 1
+    fi
+
+    # 2. Extract the parent group/namespace and create it
+    local group_dir="${target_dir%/*}"
+    mkdir -p "$group_dir"
+
+    # 3. Clone and CD if successful
+    if git clone "git@${host}:${repo_full_path}.git" "$target_dir"; then
+        echo "Successfully cloned $repo_full_path into $target_dir"
+        cd "$target_dir"
+    else
+        echo "Clone failed. Check your path or SSH permissions."
+        return 1
+    fi
+}
+
+# The Specific Wrappers
+gitlabclone()    { _generic_git_clone "gitlab.com" "$1"; }
+githubclone()    { _generic_git_clone "github.com" "$1"; }
 
 #docker
 alias dockerkillall='docker ps -q | xargs docker stop'
