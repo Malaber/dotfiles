@@ -22,6 +22,7 @@ packages:
     casks:
       - alt-tab
       - bitwarden
+      - caffeine
       - google-chrome
       - jetbrains-toolbox
       - iterm2
