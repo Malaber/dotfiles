@@ -37,8 +37,10 @@ _generic_git_clone() {
 
     # 1. Check if the directory already exists
     if [ -d "$target_dir" ]; then
-        echo "Aborting: Directory already exists at $target_dir"
-        return 1
+        echo "Aborting clone: Directory already exists at $target_dir"
+        echo "Switching to existing repo instead"
+        cd "$target_dir"
+        return 0
     fi
 
     # 2. Extract the parent group/namespace and create it
