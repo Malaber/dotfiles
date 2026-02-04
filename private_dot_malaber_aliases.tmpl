@@ -50,6 +50,7 @@ _generic_git_clone() {
     # 3. Clone and CD if successful
     if git clone "git@${host}:${repo_full_path}.git" "$target_dir"; then
         echo "Successfully cloned $repo_full_path into $target_dir"
+        # TODO execute gitconfigXX
         cd "$target_dir"
     else
         echo "Clone failed. Check your path or SSH permissions."
