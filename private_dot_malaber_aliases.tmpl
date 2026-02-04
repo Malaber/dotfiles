@@ -32,6 +32,8 @@ alias grba='git rebase --autostash'
 _generic_git_clone() {
     local host="$1"           # e.g., gitlab.com
     local repo_full_path="$2" # e.g., namespace/project
+    local config_alias="$3"   # e.g., gitconfigprivat
+
     local base_root="$HOME/Git"
     local target_dir="$base_root/$host/$repo_full_path"
 
@@ -50,8 +52,12 @@ _generic_git_clone() {
     # 3. Clone and CD if successful
     if git clone "git@${host}:${repo_full_path}.git" "$target_dir"; then
         echo "Successfully cloned $repo_full_path into $target_dir"
-        # TODO execute gitconfigXX
         cd "$target_dir"
+
+        if [ -n "$config_alias" ]; then
+            echo "Applying git config: $config_alias"
+            $config_alias
+        fi
     else
         echo "Clone failed. Check your path or SSH permissions."
         return 1
@@ -59,8 +65,8 @@ _generic_git_clone() {
 }
 
 # The Specific Wrappers
-gitlabclone()    { _generic_git_clone "gitlab.com" "$1"; }
-githubclone()    { _generic_git_clone "github.com" "$1"; }
+gitlabclone()    { _generic_git_clone "gitlab.com" "$1" "gitconfignetlution"; }
+githubclone()    { _generic_git_clone "github.com" "$1" "gitconfigprivat"; }
 
 #docker
 alias dockerkillall='docker ps -q | xargs docker stop'
