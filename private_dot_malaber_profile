@@ -46,6 +46,9 @@ ssh-add-all || true # add keys on initial .profile load, ignore failure
 # standard editor
 export EDITOR=vim
 
+# path
+export PATH="$HOME/.local/bin:$PATH"
+
 #kubectl config
 export KUBECONFIG="${HOME}/.kube/config"
 

@@ -35,3 +35,16 @@ git config --global core.eol lf
 git config --global alias.pushall '!git remote | xargs -L1 git push'
 git config --global alias.oldest-ancestor '!bash -c '\''diff --old-line-format='' --new-line-format='' <(git rev-list --first-parent "${1:-master}") <(git rev-list --first-parent "${2:-HEAD}") | head -1'\'' -' # https://stackoverflow.com/a/4991675/10559526
 git config --global alias.pushfwl "push --force-with-lease"
+
+# gitlab-search
+GITLAB_SEARCH_DIR="$HOME/.local/node/gitlab-search"
+mkdir -p "$GITLAB_SEARCH_DIR"
+mkdir -p "$HOME/.local/bin"
+(
+    cd "$GITLAB_SEARCH_DIR"
+    if [ ! -f package.json ]; then
+        npm init -y
+    fi
+    npm install gitlab-search@latest
+)
+ln -sf "$GITLAB_SEARCH_DIR/node_modules/.bin/gitlab-search" "$HOME/.local/bin/gitlab-search"
