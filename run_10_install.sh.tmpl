@@ -37,14 +37,16 @@ git config --global alias.oldest-ancestor '!bash -c '\''diff --old-line-format='
 git config --global alias.pushfwl "push --force-with-lease"
 
 # gitlab-search
+echo "Installing/Updating gitlab-search..."
 GITLAB_SEARCH_DIR="$HOME/.local/node/gitlab-search"
 mkdir -p "$GITLAB_SEARCH_DIR"
 mkdir -p "$HOME/.local/bin"
 (
     cd "$GITLAB_SEARCH_DIR"
     if [ ! -f package.json ]; then
-        npm init -y
+        npm init -y > /dev/null
     fi
-    npm install gitlab-search@latest
+    npm install gitlab-search@latest --quiet --no-progress
 )
 ln -sf "$GITLAB_SEARCH_DIR/node_modules/.bin/gitlab-search" "$HOME/.local/bin/gitlab-search"
+echo "gitlab-search is ready at ~/.local/bin/gitlab-search"
