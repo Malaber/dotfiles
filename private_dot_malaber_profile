@@ -43,7 +43,7 @@ function ssh-add-all {
 }
 ssh-add-all || true # add keys on initial .profile load, ignore failure
 
-#standart editor
+# standard editor
 export EDITOR=vim
 
 #kubectl config
