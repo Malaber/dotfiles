@@ -32,3 +32,4 @@ packages:
       - font-hack-nerd-font # this needs to be enabled in iTerm2 manually
       - dockanchor
       - jordanbaird-ice
+      - middleclick # https://github.com/artginzburg/MiddleClick
