@@ -43,6 +43,22 @@ function ssh-add-all {
 }
 ssh-add-all || true # add keys on initial .profile load, ignore failure
 
+sshretry() {
+  local delay=2
+  while true; do
+    ssh -o ConnectTimeout=5 -o ConnectionAttempts=1 "$@"
+    rc=$?
+
+    case $rc in
+      255) ;; # connection error → retry
+      *) return $rc ;;
+    esac
+
+    echo "[sshretry] retrying in ${delay}s..."
+    sleep "$delay"
+  done
+}
+
 # standard editor
 export EDITOR=vim
 
