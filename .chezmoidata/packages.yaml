@@ -20,6 +20,7 @@ packages:
       - colima
       - coreutils
       - node
+      - nvm
     casks:
       - alt-tab
       - bitwarden
