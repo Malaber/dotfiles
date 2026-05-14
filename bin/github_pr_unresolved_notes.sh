@@ -32,7 +32,19 @@ fi
 pr_json="$(
   gh pr view "$pr_number" \
     --repo "$repo" \
-    --json url,headRefOid,statusCheckRollup
+    --json url,baseRefName,headRefName,headRefOid,statusCheckRollup
+)"
+
+base_ref="$(
+  jq -r '.baseRefName' <<<"$pr_json"
+)"
+
+head_sha="$(
+  jq -r '.headRefOid' <<<"$pr_json"
+)"
+
+compare_json="$(
+  gh api "repos/${repo}/compare/${base_ref}...${head_sha}"
 )"
 
 notes_json="$(
@@ -102,6 +114,7 @@ notes_json="$(
 
 jq -n \
   --argjson pr "$pr_json" \
+  --argjson compare "$compare_json" \
   --argjson notes_json "$notes_json" \
   --arg show_all "$show_all" '
     def thumbs_up_count:
@@ -209,7 +222,19 @@ jq -n \
     | {
         pull_request: {
           url: $pr.url,
+          base: $pr.baseRefName,
+          head: $pr.headRefName,
           head_sha: $pr.headRefOid
+        },
+        branch: {
+          up_to_date_with_base: (($compare.behind_by // 0) == 0),
+          compare_status: ($compare.status // "unknown"),
+          ahead_by: ($compare.ahead_by // null),
+          behind_by: ($compare.behind_by // null),
+          base_branch: $pr.baseRefName,
+          head_branch: $pr.headRefName,
+          base_url: ($compare.base_commit.html_url // null),
+          compare_url: ($compare.html_url // null)
         },
         ci: {
           state: (
@@ -268,4 +293,3 @@ jq -n \
         )
       }
   '
-
