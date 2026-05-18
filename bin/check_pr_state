@@ -1,0 +1,792 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import shutil
+import subprocess
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+from dataclasses import dataclass
+from typing import Any
+
+
+API_BASE = "https://api.github.com"
+GRAPHQL_URL = "https://api.github.com/graphql"
+
+BAD_CHECK_CONCLUSIONS = {
+    "failure",
+    "timed_out",
+    "cancelled",
+    "action_required",
+    "startup_failure",
+}
+
+BAD_WORKFLOW_CONCLUSIONS = {
+    "failure",
+    "timed_out",
+    "cancelled",
+    "action_required",
+    "startup_failure",
+}
+
+ACTIVE_STATUSES = {"queued", "in_progress"}
+WAITING_STATUSES = {"waiting", "pending", "requested"}
+
+
+class GitHubError(RuntimeError):
+    pass
+
+
+@dataclass
+class HttpResult:
+    data: Any
+    headers: dict[str, str]
+
+
+def split_repo(repo: str) -> tuple[str, str]:
+    if "/" not in repo:
+        raise SystemExit("--repo must be in owner/name format, for example Malaber/planini")
+
+    owner, name = repo.split("/", 1)
+
+    if not owner or not name:
+        raise SystemExit("--repo must be in owner/name format, for example Malaber/planini")
+
+    return owner, name
+
+
+def get_auth_token(use_gh: bool) -> str | None:
+    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if token:
+        return token
+
+    if not use_gh or not shutil.which("gh"):
+        return None
+
+    completed = subprocess.run(
+        ["gh", "auth", "token"],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+
+    token = completed.stdout.strip()
+    return token or None
+
+
+def request_json(
+    method: str,
+    url: str,
+    token: str | None,
+    body: dict[str, Any] | None = None,
+) -> HttpResult:
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "check_pr_state",
+        "X-GitHub-Api-Version": os.environ.get("GITHUB_API_VERSION", "2022-11-28"),
+    }
+
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    data = None
+
+    if body is not None:
+        data = json.dumps(body).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+
+    try:
+        with urllib.request.urlopen(req) as response:
+            raw = response.read().decode("utf-8")
+            parsed = json.loads(raw) if raw else None
+            return HttpResult(parsed, dict(response.headers.items()))
+
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise GitHubError(f"GitHub API error {exc.code} for {url}:\n{detail}") from exc
+
+    except urllib.error.URLError as exc:
+        raise GitHubError(f"GitHub API request failed for {url}: {exc}") from exc
+
+
+def build_url(path: str, params: dict[str, Any] | None = None) -> str:
+    path = path if path.startswith("/") else f"/{path}"
+    query = ""
+
+    if params:
+        clean_params = {key: value for key, value in params.items() if value is not None}
+        query = "?" + urllib.parse.urlencode(clean_params)
+
+    return f"{API_BASE}{path}{query}"
+
+
+def parse_next_link(link_header: str | None) -> str | None:
+    if not link_header:
+        return None
+
+    for part in link_header.split(","):
+        section = part.strip()
+
+        if 'rel="next"' not in section:
+            continue
+
+        start = section.find("<")
+        end = section.find(">")
+
+        if start != -1 and end != -1 and end > start:
+            return section[start + 1 : end]
+
+    return None
+
+
+def rest_get(token: str | None, path: str, params: dict[str, Any] | None = None) -> Any:
+    return request_json("GET", build_url(path, params), token).data
+
+
+def rest_get_paginated(
+    token: str | None,
+    path: str,
+    params: dict[str, Any] | None = None,
+) -> list[Any]:
+    url = build_url(path, params)
+    items: list[Any] = []
+
+    while url:
+        result = request_json("GET", url, token)
+
+        if not isinstance(result.data, list):
+            raise GitHubError(f"Expected a list response for {url}")
+
+        items.extend(result.data)
+        url = parse_next_link(result.headers.get("Link"))
+
+    return items
+
+
+def graphql(token: str, query: str, variables: dict[str, Any]) -> dict[str, Any]:
+    result = request_json(
+        "POST",
+        GRAPHQL_URL,
+        token,
+        {
+            "query": query,
+            "variables": variables,
+        },
+    )
+
+    if result.data.get("errors"):
+        raise GitHubError(json.dumps(result.data["errors"], indent=2))
+
+    return result.data["data"]
+
+
+REVIEW_THREADS_QUERY = """
+query($owner: String!, $repo: String!, $number: Int!, $after: String) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $number) {
+      reviewThreads(first: 100, after: $after) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        nodes {
+          id
+          isResolved
+          isOutdated
+          path
+          line
+          startLine
+          comments(first: 100) {
+            totalCount
+            nodes {
+              id
+              author {
+                login
+              }
+              body
+              url
+              createdAt
+              reactionGroups {
+                content
+                users(first: 1) {
+                  totalCount
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+
+def fetch_open_prs(
+    token: str | None,
+    owner: str,
+    repo: str,
+    base: str,
+    limit: int,
+) -> list[dict[str, Any]]:
+    prs = rest_get_paginated(
+        token,
+        f"/repos/{owner}/{repo}/pulls",
+        {
+            "state": "open",
+            "base": base,
+            "per_page": 100,
+            "sort": "updated",
+            "direction": "desc",
+        },
+    )
+
+    return prs[:limit]
+
+
+def fetch_pr_detail(token: str | None, owner: str, repo: str, number: int) -> dict[str, Any]:
+    return rest_get(token, f"/repos/{owner}/{repo}/pulls/{number}")
+
+
+def short_error(exc: BaseException) -> str:
+    lines = str(exc).strip().splitlines()
+    return lines[0] if lines else exc.__class__.__name__
+
+
+def fetch_check_runs(
+    token: str | None,
+    owner: str,
+    repo: str,
+    sha: str,
+) -> tuple[list[dict[str, Any]], str | None]:
+    try:
+        data = rest_get(
+            token,
+            f"/repos/{owner}/{repo}/commits/{sha}/check-runs",
+            {
+                "filter": "latest",
+                "per_page": 100,
+            },
+        )
+    except GitHubError as exc:
+        return [], f"check-runs unavailable: {short_error(exc)}"
+
+    return data.get("check_runs", []), None
+
+
+def fetch_combined_status(
+    token: str | None,
+    owner: str,
+    repo: str,
+    sha: str,
+) -> tuple[list[dict[str, Any]], str | None]:
+    try:
+        data = rest_get(token, f"/repos/{owner}/{repo}/commits/{sha}/status")
+    except GitHubError as exc:
+        return [], f"commit statuses unavailable: {short_error(exc)}"
+
+    return data.get("statuses", []), None
+
+
+def fetch_workflow_runs(
+    token: str | None,
+    owner: str,
+    repo: str,
+    sha: str,
+) -> tuple[list[dict[str, Any]], str | None]:
+    try:
+        data = rest_get(
+            token,
+            f"/repos/{owner}/{repo}/actions/runs",
+            {
+                "head_sha": sha,
+                "per_page": 100,
+            },
+        )
+    except GitHubError as exc:
+        return [], f"workflow runs unavailable: {short_error(exc)}"
+
+    return data.get("workflow_runs", []), None
+
+
+def has_any_thumbs_up(comment: dict[str, Any]) -> bool:
+    for group in comment.get("reactionGroups", []):
+        if group.get("content") != "THUMBS_UP":
+            continue
+
+        users = group.get("users") or {}
+        return (users.get("totalCount") or 0) > 0
+
+    return False
+
+
+def shorten(text: str, max_len: int = 110) -> str:
+    compact = " ".join(text.split())
+
+    if len(compact) <= max_len:
+        return compact
+
+    return compact[: max_len - 1] + "…"
+
+
+def fetch_unacknowledged_review_comments(
+    token: str | None,
+    owner: str,
+    repo: str,
+    pr_number: int,
+    comment_author: str,
+) -> tuple[list[dict[str, Any]] | None, list[str]]:
+    if not token:
+        return None, [
+            "review-thread comments skipped; run `gh auth login` or set GH_TOKEN/GITHUB_TOKEN to enable"
+        ]
+
+    comments: list[dict[str, Any]] = []
+    warnings: list[str] = []
+    after = None
+    wanted_author = comment_author.lower()
+
+    while True:
+        data = graphql(
+            token,
+            REVIEW_THREADS_QUERY,
+            {
+                "owner": owner,
+                "repo": repo,
+                "number": pr_number,
+                "after": after,
+            },
+        )
+
+        pr = data["repository"]["pullRequest"]
+        conn = pr["reviewThreads"]
+
+        for thread in conn["nodes"]:
+            if thread.get("isResolved"):
+                continue
+
+            comment_conn = thread.get("comments") or {}
+            thread_comments = comment_conn.get("nodes") or []
+            total_count = comment_conn.get("totalCount") or 0
+
+            if total_count > len(thread_comments):
+                warnings.append(
+                    f"review thread {thread.get('id')} has {total_count} comments; "
+                    f"only first {len(thread_comments)} were checked"
+                )
+
+            for comment in thread_comments:
+                author = comment.get("author") or {}
+                login = author.get("login") or ""
+
+                if login.lower() != wanted_author:
+                    continue
+
+                if has_any_thumbs_up(comment):
+                    continue
+
+                line = thread.get("line") or thread.get("startLine")
+                location = thread.get("path") or "unknown file"
+
+                if line:
+                    location = f"{location}:{line}"
+
+                comments.append(
+                    {
+                        "url": comment.get("url"),
+                        "location": location,
+                        "body": shorten(comment.get("body") or ""),
+                    }
+                )
+
+        if not conn["pageInfo"]["hasNextPage"]:
+            break
+
+        after = conn["pageInfo"]["endCursor"]
+
+    return comments, warnings
+
+
+def classify_ci(token: str | None, owner: str, repo: str, sha: str) -> dict[str, Any]:
+    warnings: list[str] = []
+
+    check_runs, warning = fetch_check_runs(token, owner, repo, sha)
+    if warning:
+        warnings.append(warning)
+
+    statuses, warning = fetch_combined_status(token, owner, repo, sha)
+    if warning:
+        warnings.append(warning)
+
+    workflow_runs, warning = fetch_workflow_runs(token, owner, repo, sha)
+    if warning:
+        warnings.append(warning)
+
+    failed_checks = [
+        run
+        for run in check_runs
+        if run.get("status") == "completed"
+        and (run.get("conclusion") or "").lower() in BAD_CHECK_CONCLUSIONS
+    ]
+
+    active_checks = [
+        run
+        for run in check_runs
+        if (run.get("status") or "").lower() in ACTIVE_STATUSES
+    ]
+
+    waiting_checks = [
+        run
+        for run in check_runs
+        if (run.get("status") or "").lower() in WAITING_STATUSES
+    ]
+
+    failed_statuses = [
+        status
+        for status in statuses
+        if (status.get("state") or "").lower() in {"failure", "error"}
+    ]
+
+    pending_statuses = [
+        status
+        for status in statuses
+        if (status.get("state") or "").lower() == "pending"
+    ]
+
+    completed_workflows = [
+        run for run in workflow_runs if run.get("status") == "completed"
+    ]
+
+    successful_workflows = [
+        run for run in completed_workflows if run.get("conclusion") == "success"
+    ]
+
+    failed_workflows = [
+        run
+        for run in completed_workflows
+        if (run.get("conclusion") or "").lower() in BAD_WORKFLOW_CONCLUSIONS
+    ]
+
+    active_workflows = [
+        run
+        for run in workflow_runs
+        if (run.get("status") or "").lower() in ACTIVE_STATUSES
+    ]
+
+    waiting_workflows = [
+        run
+        for run in workflow_runs
+        if (run.get("status") or "").lower() in WAITING_STATUSES
+    ]
+
+    non_completed_workflows = [
+        run for run in workflow_runs if run.get("status") != "completed"
+    ]
+
+    only_waiting_workflows_left = bool(non_completed_workflows) and all(
+        (run.get("status") or "").lower() in WAITING_STATUSES
+        for run in non_completed_workflows
+    )
+
+    deployment_waiting = (
+        bool(successful_workflows)
+        and not failed_checks
+        and not failed_workflows
+        and not failed_statuses
+        and not active_checks
+        and not active_workflows
+        and not pending_statuses
+        and (
+            only_waiting_workflows_left
+            or bool(waiting_checks)
+            or bool(waiting_workflows)
+        )
+    )
+
+    total_signals = len(check_runs) + len(statuses) + len(workflow_runs)
+
+    return {
+        "warnings": warnings,
+        "failed_checks": failed_checks,
+        "failed_workflows": failed_workflows,
+        "failed_statuses": failed_statuses,
+        "active_checks": active_checks,
+        "active_workflows": active_workflows,
+        "waiting_checks": waiting_checks,
+        "waiting_workflows": waiting_workflows,
+        "pending_statuses": pending_statuses,
+        "successful_workflows": successful_workflows,
+        "deployment_waiting": deployment_waiting,
+        "total_signals": total_signals,
+    }
+
+
+def merge_summary(pr_detail: dict[str, Any]) -> tuple[str, str | None]:
+    mergeable = pr_detail.get("mergeable")
+    mergeable_state = pr_detail.get("mergeable_state")
+
+    if mergeable_state == "dirty":
+        return "CONFLICT", "merge conflict against base branch"
+
+    if mergeable is True and mergeable_state in {"clean", "unstable", "has_hooks"}:
+        return "clean", None
+
+    if mergeable_state in {"blocked", "behind"}:
+        return mergeable_state, None
+
+    if mergeable is None or mergeable_state in {None, "unknown"}:
+        return "unknown", "GitHub has not calculated mergeability yet; rerun in a few seconds if needed"
+
+    if mergeable is False:
+        return str(mergeable_state or "not mergeable"), None
+
+    return str(mergeable_state or mergeable), None
+
+
+def item_name(item: dict[str, Any]) -> str:
+    return str(
+        item.get("name")
+        or item.get("display_title")
+        or item.get("context")
+        or item.get("html_url")
+        or "unknown"
+    )
+
+
+def names(items: list[dict[str, Any]], limit: int = 4) -> str:
+    values = [item_name(item) for item in items[:limit]]
+
+    if len(items) > limit:
+        values.append(f"+{len(items) - limit} more")
+
+    return ", ".join(values)
+
+
+def check_pr(
+    token: str | None,
+    owner: str,
+    repo: str,
+    pr: dict[str, Any],
+    comment_author: str,
+) -> dict[str, Any]:
+    number = pr["number"]
+    detail = fetch_pr_detail(token, owner, repo, number)
+    sha = detail["head"]["sha"]
+
+    ci = classify_ci(token, owner, repo, sha)
+    merge_state, merge_warning = merge_summary(detail)
+
+    comments, comment_warnings = fetch_unacknowledged_review_comments(
+        token,
+        owner,
+        repo,
+        number,
+        comment_author,
+    )
+
+    warnings = list(ci["warnings"])
+
+    if merge_warning:
+        warnings.append(merge_warning)
+
+    warnings.extend(comment_warnings)
+
+    return {
+        "number": number,
+        "title": detail["title"],
+        "url": detail["html_url"],
+        "draft": detail["draft"],
+        "head_ref": detail["head"]["ref"],
+        "head_sha": sha,
+        "base_ref": detail["base"]["ref"],
+        "merge": merge_state,
+        "ci": ci,
+        "comments": comments,
+        "warnings": warnings,
+    }
+
+
+def format_pr_summary(result: dict[str, Any], comment_author: str) -> list[str]:
+    ci = result["ci"]
+    comments = result["comments"]
+
+    flags: list[str] = []
+
+    if result["draft"]:
+        flags.append("DRAFT")
+
+    if ci["failed_checks"] or ci["failed_workflows"] or ci["failed_statuses"]:
+        flags.append("CI FAIL")
+    elif ci["active_checks"] or ci["active_workflows"] or ci["pending_statuses"]:
+        flags.append("CI RUNNING")
+    elif ci["deployment_waiting"]:
+        flags.append("DEPLOY WAITING")
+    elif ci["total_signals"] == 0:
+        flags.append("CI UNKNOWN")
+    else:
+        flags.append("CI OK")
+
+    if result["merge"] == "CONFLICT":
+        flags.append("MERGE CONFLICT")
+    elif result["merge"] == "clean":
+        flags.append("MERGE OK")
+    else:
+        flags.append(f"MERGE {result['merge'].upper()}")
+
+    if comments is None:
+        flags.append("COMMENTS UNKNOWN")
+    elif comments:
+        flags.append(f"{len(comments)} OPEN {comment_author} COMMENT(S)")
+    else:
+        flags.append("COMMENTS OK")
+
+    lines = [
+        f"#{result['number']} {result['title']}",
+        f"  {' | '.join(flags)}",
+        f"  {result['head_ref']} -> {result['base_ref']}",
+        f"  {result['url']}",
+    ]
+
+    if ci["failed_checks"]:
+        lines.append(f"  failed checks: {names(ci['failed_checks'])}")
+
+    if ci["failed_workflows"]:
+        lines.append(f"  failed workflows: {names(ci['failed_workflows'])}")
+
+    if ci["failed_statuses"]:
+        lines.append(f"  failed statuses: {names(ci['failed_statuses'])}")
+
+    if ci["deployment_waiting"]:
+        waiting_bits = []
+
+        if ci["waiting_workflows"]:
+            waiting_bits.append(f"workflows: {names(ci['waiting_workflows'])}")
+
+        if ci["waiting_checks"]:
+            waiting_bits.append(f"checks: {names(ci['waiting_checks'])}")
+
+        suffix = "; ".join(waiting_bits) if waiting_bits else "deployment approval/check waiting"
+        lines.append(f"  deployment trigger likely needed: {suffix}")
+
+    if comments:
+        for comment in comments[:3]:
+            lines.append(f"  comment: {comment['location']} — {comment['body']}")
+
+            if comment.get("url"):
+                lines.append(f"           {comment['url']}")
+
+        if len(comments) > 3:
+            lines.append(f"  comment: +{len(comments) - 3} more")
+
+    for warning in result["warnings"][:3]:
+        lines.append(f"  note: {warning}")
+
+    if len(result["warnings"]) > 3:
+        lines.append(f"  note: +{len(result['warnings']) - 3} more")
+
+    return lines
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="check_pr_state",
+        description="Print a brief overview of open GitHub pull requests.",
+    )
+
+    parser.add_argument(
+        "--repo",
+        required=True,
+        help="Repository in owner/name format, for example Malaber/planini",
+    )
+
+    parser.add_argument(
+        "--base",
+        default="main",
+        help="Only show PRs targeting this base branch. Default: main",
+    )
+
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=100,
+        help="Maximum number of open PRs to inspect. Default: 100",
+    )
+
+    parser.add_argument(
+        "--comment-author",
+        default="Malaber",
+        help="Review-comment author to check. Default: Malaber",
+    )
+
+    parser.add_argument(
+        "--no-gh",
+        action="store_true",
+        help="Do not read auth from `gh auth token`; only use env token or public REST.",
+    )
+
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print JSON instead of human overview.",
+    )
+
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    owner, repo = split_repo(args.repo)
+    token = get_auth_token(use_gh=not args.no_gh)
+
+    try:
+        prs = fetch_open_prs(token, owner, repo, args.base, args.limit)
+
+        results = [
+            check_pr(
+                token=token,
+                owner=owner,
+                repo=repo,
+                pr=pr,
+                comment_author=args.comment_author,
+            )
+            for pr in prs
+        ]
+
+    except GitHubError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
+
+    if args.json:
+        print(json.dumps(results, indent=2))
+        return 0
+
+    auth_mode = "authenticated" if token else "public unauthenticated"
+    print(f"{args.repo}: {len(results)} open PR(s) targeting {args.base} ({auth_mode})")
+
+    if not token:
+        print("Note: unresolved review-thread comments need GitHub auth. Run `gh auth login` to enable them.")
+
+    if not results:
+        return 0
+
+    print()
+
+    for index, result in enumerate(results):
+        if index:
+            print()
+
+        print("\n".join(format_pr_summary(result, args.comment_author)))
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
