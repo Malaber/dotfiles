@@ -327,15 +327,6 @@ def has_any_thumbs_up(comment: dict[str, Any]) -> bool:
     return False
 
 
-def shorten(text: str, max_len: int = 110) -> str:
-    compact = " ".join(text.split())
-
-    if len(compact) <= max_len:
-        return compact
-
-    return compact[: max_len - 1] + "…"
-
-
 def fetch_unacknowledged_review_comments(
     token: str | None,
     owner: str,
@@ -392,17 +383,12 @@ def fetch_unacknowledged_review_comments(
                 if has_any_thumbs_up(comment):
                     continue
 
-                line = thread.get("line") or thread.get("startLine")
-                location = thread.get("path") or "unknown file"
-
-                if line:
-                    location = f"{location}:{line}"
-
                 comments.append(
                     {
                         "url": comment.get("url"),
-                        "location": location,
-                        "body": shorten(comment.get("body") or ""),
+                        "path": thread.get("path"),
+                        "line": thread.get("line") or thread.get("startLine"),
+                        "body": " ".join((comment.get("body") or "").split()),
                     }
                 )
 
@@ -495,19 +481,16 @@ def classify_ci(token: str | None, owner: str, repo: str, sha: str) -> dict[str,
         for run in non_completed_workflows
     )
 
+    has_failure = bool(failed_checks or failed_workflows or failed_statuses)
+    has_running = bool(active_checks or active_workflows or pending_statuses)
+    has_success = bool(successful_workflows)
+    has_waiting = bool(waiting_checks or waiting_workflows or only_waiting_workflows_left)
+
     deployment_waiting = (
-        bool(successful_workflows)
-        and not failed_checks
-        and not failed_workflows
-        and not failed_statuses
-        and not active_checks
-        and not active_workflows
-        and not pending_statuses
-        and (
-            only_waiting_workflows_left
-            or bool(waiting_checks)
-            or bool(waiting_workflows)
-        )
+        has_success
+        and not has_failure
+        and not has_running
+        and has_waiting
     )
 
     total_signals = len(check_runs) + len(statuses) + len(workflow_runs)
@@ -525,6 +508,10 @@ def classify_ci(token: str | None, owner: str, repo: str, sha: str) -> dict[str,
         "successful_workflows": successful_workflows,
         "deployment_waiting": deployment_waiting,
         "total_signals": total_signals,
+        "has_failure": has_failure,
+        "has_running": has_running,
+        "has_success": has_success,
+        "has_waiting": has_waiting,
     }
 
 
@@ -533,7 +520,7 @@ def merge_summary(pr_detail: dict[str, Any]) -> tuple[str, str | None]:
     mergeable_state = pr_detail.get("mergeable_state")
 
     if mergeable_state == "dirty":
-        return "CONFLICT", "merge conflict against base branch"
+        return "conflict", "merge conflict against base branch"
 
     if mergeable is True and mergeable_state in {"clean", "unstable", "has_hooks"}:
         return "clean", None
@@ -542,31 +529,12 @@ def merge_summary(pr_detail: dict[str, Any]) -> tuple[str, str | None]:
         return mergeable_state, None
 
     if mergeable is None or mergeable_state in {None, "unknown"}:
-        return "unknown", "GitHub has not calculated mergeability yet; rerun in a few seconds if needed"
+        return "unknown", "GitHub has not calculated mergeability yet"
 
     if mergeable is False:
-        return str(mergeable_state or "not mergeable"), None
+        return str(mergeable_state or "not_mergeable"), None
 
     return str(mergeable_state or mergeable), None
-
-
-def item_name(item: dict[str, Any]) -> str:
-    return str(
-        item.get("name")
-        or item.get("display_title")
-        or item.get("context")
-        or item.get("html_url")
-        or "unknown"
-    )
-
-
-def names(items: list[dict[str, Any]], limit: int = 4) -> str:
-    values = [item_name(item) for item in items[:limit]]
-
-    if len(items) > limit:
-        values.append(f"+{len(items) - limit} more")
-
-    return ", ".join(values)
 
 
 def check_pr(
@@ -613,7 +581,118 @@ def check_pr(
     }
 
 
-def format_pr_summary(result: dict[str, Any], comment_author: str) -> list[str]:
+def pr_line(pr: dict[str, Any]) -> str:
+    draft = " [draft]" if pr["draft"] else ""
+    return f"- #{pr['number']} {pr['title']}{draft}"
+
+
+def bucket_prs(results: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    buckets: dict[str, list[dict[str, Any]]] = {
+        "wait": [],
+        "rework": [],
+        "deployment": [],
+        "ready": [],
+        "unclear": [],
+    }
+
+    for pr in results:
+        ci = pr["ci"]
+        comments = pr["comments"]
+
+        has_open_comments = comments is not None and len(comments) > 0
+        comments_unknown = comments is None
+        has_merge_conflict = pr["merge"] == "conflict"
+        merge_clean = pr["merge"] == "clean"
+
+        if ci["has_failure"] or has_merge_conflict or has_open_comments:
+            buckets["rework"].append(pr)
+            continue
+
+        if ci["has_running"]:
+            buckets["wait"].append(pr)
+            continue
+
+        if ci["deployment_waiting"]:
+            buckets["deployment"].append(pr)
+            continue
+
+        if (
+            merge_clean
+            and ci["total_signals"] > 0
+            and not ci["has_failure"]
+            and not ci["has_running"]
+            and not ci["has_waiting"]
+            and not has_open_comments
+            and not comments_unknown
+        ):
+            buckets["ready"].append(pr)
+            continue
+
+        buckets["unclear"].append(pr)
+
+    return buckets
+
+
+def print_bucket(title: str, prs: list[dict[str, Any]]) -> None:
+    print(title)
+
+    if not prs:
+        print("  none")
+        return
+
+    for pr in prs:
+        print("  " + pr_line(pr))
+
+
+def print_simple_report(
+    repo: str,
+    base: str,
+    results: list[dict[str, Any]],
+    token: str | None,
+) -> None:
+    buckets = bucket_prs(results)
+
+    auth_mode = "authenticated" if token else "public unauthenticated"
+    print(f"{repo}: {len(results)} open PR(s) targeting {base} ({auth_mode})")
+    print()
+
+    print_bucket("Need to wait: CI running, no failures yet", buckets["wait"])
+    print()
+    print_bucket("Need rework: CI failed, merge conflict, or unacknowledged review comment", buckets["rework"])
+    print()
+    print_bucket("Deployment/testing needed: CI passed and deployment is waiting", buckets["deployment"])
+    print()
+    print_bucket("Deployment through, testable, and mergeable", buckets["ready"])
+
+    if buckets["unclear"]:
+        print()
+        print_bucket("Unclear / not in the above buckets", buckets["unclear"])
+
+    if not token:
+        print()
+        print("Note: review-thread comments are unknown without auth. Run `gh auth login` to enable that check.")
+
+
+def item_name(item: dict[str, Any]) -> str:
+    return str(
+        item.get("name")
+        or item.get("display_title")
+        or item.get("context")
+        or item.get("html_url")
+        or "unknown"
+    )
+
+
+def names(items: list[dict[str, Any]], limit: int = 4) -> str:
+    values = [item_name(item) for item in items[:limit]]
+
+    if len(items) > limit:
+        values.append(f"+{len(items) - limit} more")
+
+    return ", ".join(values)
+
+
+def format_pr_details(result: dict[str, Any], comment_author: str) -> list[str]:
     ci = result["ci"]
     comments = result["comments"]
 
@@ -622,9 +701,9 @@ def format_pr_summary(result: dict[str, Any], comment_author: str) -> list[str]:
     if result["draft"]:
         flags.append("DRAFT")
 
-    if ci["failed_checks"] or ci["failed_workflows"] or ci["failed_statuses"]:
+    if ci["has_failure"]:
         flags.append("CI FAIL")
-    elif ci["active_checks"] or ci["active_workflows"] or ci["pending_statuses"]:
+    elif ci["has_running"]:
         flags.append("CI RUNNING")
     elif ci["deployment_waiting"]:
         flags.append("DEPLOY WAITING")
@@ -633,7 +712,7 @@ def format_pr_summary(result: dict[str, Any], comment_author: str) -> list[str]:
     else:
         flags.append("CI OK")
 
-    if result["merge"] == "CONFLICT":
+    if result["merge"] == "conflict":
         flags.append("MERGE CONFLICT")
     elif result["merge"] == "clean":
         flags.append("MERGE OK")
@@ -677,7 +756,16 @@ def format_pr_summary(result: dict[str, Any], comment_author: str) -> list[str]:
 
     if comments:
         for comment in comments[:3]:
-            lines.append(f"  comment: {comment['location']} — {comment['body']}")
+            location = comment.get("path") or "unknown file"
+
+            if comment.get("line"):
+                location = f"{location}:{comment['line']}"
+
+            body = comment.get("body") or ""
+            if len(body) > 110:
+                body = body[:109] + "…"
+
+            lines.append(f"  comment: {location} — {body}")
 
             if comment.get("url"):
                 lines.append(f"           {comment['url']}")
@@ -694,10 +782,35 @@ def format_pr_summary(result: dict[str, Any], comment_author: str) -> list[str]:
     return lines
 
 
+def print_details_report(
+    repo: str,
+    base: str,
+    results: list[dict[str, Any]],
+    token: str | None,
+    comment_author: str,
+) -> None:
+    auth_mode = "authenticated" if token else "public unauthenticated"
+    print(f"{repo}: {len(results)} open PR(s) targeting {base} ({auth_mode})")
+
+    if not token:
+        print("Note: unresolved review-thread comments need GitHub auth. Run `gh auth login` to enable them.")
+
+    if not results:
+        return
+
+    print()
+
+    for index, result in enumerate(results):
+        if index:
+            print()
+
+        print("\n".join(format_pr_details(result, comment_author)))
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="check_pr_state",
-        description="Print a brief overview of open GitHub pull requests.",
+        description="Print a clustered overview of open GitHub pull requests.",
     )
 
     parser.add_argument(
@@ -732,9 +845,15 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--details",
+        action="store_true",
+        help="Show detailed per-PR output instead of clustered lists.",
+    )
+
+    parser.add_argument(
         "--json",
         action="store_true",
-        help="Print JSON instead of human overview.",
+        help="Print JSON instead of human output.",
     )
 
     return parser.parse_args()
@@ -742,17 +861,17 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    owner, repo = split_repo(args.repo)
+    owner, repo_name = split_repo(args.repo)
     token = get_auth_token(use_gh=not args.no_gh)
 
     try:
-        prs = fetch_open_prs(token, owner, repo, args.base, args.limit)
+        prs = fetch_open_prs(token, owner, repo_name, args.base, args.limit)
 
         results = [
             check_pr(
                 token=token,
                 owner=owner,
-                repo=repo,
+                repo=repo_name,
                 pr=pr,
                 comment_author=args.comment_author,
             )
@@ -764,29 +883,25 @@ def main() -> int:
         return 2
 
     if args.json:
-        print(json.dumps(results, indent=2))
+        payload = {
+            "repo": args.repo,
+            "base": args.base,
+            "pull_requests": results,
+            "buckets": {
+                key: [{"number": pr["number"], "title": pr["title"]} for pr in value]
+                for key, value in bucket_prs(results).items()
+            },
+        }
+        print(json.dumps(payload, indent=2))
         return 0
 
-    auth_mode = "authenticated" if token else "public unauthenticated"
-    print(f"{args.repo}: {len(results)} open PR(s) targeting {args.base} ({auth_mode})")
-
-    if not token:
-        print("Note: unresolved review-thread comments need GitHub auth. Run `gh auth login` to enable them.")
-
-    if not results:
-        return 0
-
-    print()
-
-    for index, result in enumerate(results):
-        if index:
-            print()
-
-        print("\n".join(format_pr_summary(result, args.comment_author)))
+    if args.details:
+        print_details_report(args.repo, args.base, results, token, args.comment_author)
+    else:
+        print_simple_report(args.repo, args.base, results, token)
 
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
