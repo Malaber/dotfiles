@@ -1,0 +1,6 @@
+{{- if eq .chezmoi.os "darwin" }}
+#!/bin/zsh
+set -euo pipefail
+
+"$HOME/.local/bin/restore-dock"
+{{- end }}

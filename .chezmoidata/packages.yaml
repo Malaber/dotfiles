@@ -21,6 +21,7 @@ packages:
       - coreutils
       - node
       - nvm
+      - dockutil
     casks:
       - alt-tab
       - bitwarden

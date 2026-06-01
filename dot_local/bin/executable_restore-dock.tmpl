@@ -1,0 +1,99 @@
+{{- if eq .chezmoi.os "darwin" }}
+#!/bin/zsh
+set -euo pipefail
+
+log() {
+  print -ru2 -- "[restore-dock] $*"
+}
+
+find_dockutil() {
+  if command -v dockutil >/dev/null 2>&1; then
+    command -v dockutil
+    return 0
+  fi
+
+  for candidate in /opt/homebrew/bin/dockutil /usr/local/bin/dockutil; do
+    if [[ -x "$candidate" ]]; then
+      print -- "$candidate"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+dockutil_bin="$(find_dockutil || true)"
+
+if [[ -z "$dockutil_bin" ]]; then
+  log "dockutil not found. Install it with: brew install dockutil"
+  exit 0
+fi
+
+desired_apps=(
+{{- range .dock.apps }}
+  {{ . | quote }}
+{{- end }}
+)
+
+installed_apps=()
+
+for app in "${desired_apps[@]}"; do
+  expanded="${app/#\~/$HOME}"
+
+  if [[ -d "$expanded" ]]; then
+    installed_apps+=("$expanded")
+  else
+    log "skip missing app: $expanded"
+  fi
+done
+
+if (( ${#installed_apps[@]} == 0 )); then
+  log "none of the configured Dock apps are installed; leaving Dock unchanged"
+  exit 0
+fi
+
+# Optional delay for login/MDM race conditions.
+# Example: DOCK_RESTORE_DELAY=10 restore-dock
+sleep "${DOCK_RESTORE_DELAY:-0}"
+
+# Wait until Dock exists. Useful when this is called shortly after login.
+for _ in {1..40}; do
+  if pgrep -x Dock >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.25
+done
+
+log "removing existing Dock items"
+"$dockutil_bin" --remove all --no-restart >/dev/null 2>&1 || true
+
+log "adding configured Dock apps"
+for app in "${installed_apps[@]}"; do
+  log "add: $app"
+  "$dockutil_bin" --add "$app" --section apps --position end --no-restart >/dev/null
+done
+
+# Restart once so the Dock UI reflects the new plist.
+# Caveat: if MDM reapplies the empty Dock on every Dock restart, this may be wiped again.
+killall Dock >/dev/null 2>&1 || true
+sleep 2
+
+missing=0
+
+for app in "${installed_apps[@]}"; do
+  label="${app:t:r}"
+
+  if ! "$dockutil_bin" --find "$label" >/dev/null 2>&1; then
+    log "warning: '$label' was not found after Dock restart"
+    missing=1
+  fi
+done
+
+if (( missing )); then
+  log "MDM may be wiping Dock items after every Dock restart. The script ran, but the profile may still win."
+else
+  log "Dock restored"
+fi
+
+exit 0
+{{- end }}

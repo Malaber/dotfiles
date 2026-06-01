@@ -1,0 +1,4 @@
+dock:
+  apps:
+    - "/Applications/Microsoft Edge.app"
+    - "/Applications/iTerm.app"
