@@ -9,17 +9,6 @@ log() {
 
 app_label() {
   local app="$1"
-  local plist="$app/Contents/Info.plist"
-  local value=""
-
-  for key in CFBundleDisplayName CFBundleName; do
-    value="$(/usr/libexec/PlistBuddy -c "Print :$key" "$plist" 2>/dev/null || true)"
-
-    if [[ -n "$value" ]]; then
-      printf '%s\n' "$value"
-      return 0
-    fi
-  done
 
   basename "$app" .app
 }
