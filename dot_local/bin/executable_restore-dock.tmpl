@@ -134,25 +134,8 @@ live_remove_from_dock() {
   log "live-remove: $label"
 
   DOCK_APP_LABEL="$label" /usr/bin/osascript <<'APPLESCRIPT'
-on clickRemoveItem(theMenu, removeNames)
-  repeat with removeName in removeNames
-    try
-      if exists menu item (contents of removeName) of theMenu then
-        click menu item (contents of removeName) of theMenu
-        return true
-      end if
-    end try
-  end repeat
-
-  return false
-end clickRemoveItem
-
 on run
   set appName to system attribute "DOCK_APP_LABEL"
-
-  -- English + German. Add more localized labels here if needed.
-  set removeNames to {"Remove from Dock", "Aus Dock entfernen", "Vom Dock entfernen"}
-  set optionsNames to {"Options", "Optionen"}
 
   tell application "System Events"
     tell process "Dock"
@@ -160,33 +143,41 @@ on run
         return
       end if
 
-      tell UI element appName of list 1
-        perform action "AXShowMenu"
-      end tell
+      perform action "AXShowMenu" of UI element appName of list 1
+      delay 0.4
 
-      delay 0.3
+      -- German/English direct menu item variants
+      try
+        click menu item "Remove from Dock" of menu 1 of UI element appName of list 1
+        return
+      end try
 
-      set dockMenu to menu 1 of UI element appName of list 1
+      try
+        click menu item "Aus Dock entfernen" of menu 1 of UI element appName of list 1
+        return
+      end try
 
-      -- Some macOS versions/locales expose "Remove from Dock" directly.
-      if my clickRemoveItem(dockMenu, removeNames) then return
+      try
+        click menu item "Vom Dock entfernen" of menu 1 of UI element appName of list 1
+        return
+      end try
 
-      -- Usually it is under Options/Optionen.
-      repeat with optionsName in optionsNames
-        try
-          if exists menu item (contents of optionsName) of dockMenu then
-            set optionsItem to menu item (contents of optionsName) of dockMenu
-            click optionsItem
-            delay 0.3
+      -- English Options submenu
+      try
+        click menu item "Remove from Dock" of menu 1 of menu item "Options" of menu 1 of UI element appName of list 1
+        return
+      end try
 
-            if exists menu 1 of optionsItem then
-              set optionsMenu to menu 1 of optionsItem
+      -- German Optionen submenu
+      try
+        click menu item "Aus Dock entfernen" of menu 1 of menu item "Optionen" of menu 1 of UI element appName of list 1
+        return
+      end try
 
-              if my clickRemoveItem(optionsMenu, removeNames) then return
-            end if
-          end if
-        end try
-      end repeat
+      try
+        click menu item "Vom Dock entfernen" of menu 1 of menu item "Optionen" of menu 1 of UI element appName of list 1
+        return
+      end try
     end tell
   end tell
 end run
@@ -210,26 +201,9 @@ live_keep_in_dock() {
   # -j: hide on launch
   /usr/bin/open -gj "$app"
 
-  DOCK_APP_LABEL="$label" /usr/bin/osascript <<'APPLESCRIPT'
-on clickKeepItem(theMenu, keepNames)
-  repeat with keepName in keepNames
-    try
-      if exists menu item (contents of keepName) of theMenu then
-        click menu item (contents of keepName) of theMenu
-        return true
-      end if
-    end try
-  end repeat
-
-  return false
-end clickKeepItem
-
+  if ! DOCK_APP_LABEL="$label" /usr/bin/osascript <<'APPLESCRIPT'
 on run
   set appName to system attribute "DOCK_APP_LABEL"
-
-  -- English + German. Add more localized labels here if needed.
-  set keepNames to {"Keep in Dock", "Im Dock behalten", "In Dock behalten"}
-  set optionsNames to {"Options", "Optionen"}
 
   tell application "System Events"
     tell process "Dock"
@@ -242,39 +216,51 @@ on run
         error "Dock item not found: " & appName
       end if
 
-      tell UI element appName of list 1
-        perform action "AXShowMenu"
-      end tell
+      perform action "AXShowMenu" of UI element appName of list 1
+      delay 0.4
 
-      delay 0.3
+      -- German/English direct menu item variants
+      try
+        click menu item "Keep in Dock" of menu 1 of UI element appName of list 1
+        return
+      end try
 
-      set dockMenu to menu 1 of UI element appName of list 1
+      try
+        click menu item "Im Dock behalten" of menu 1 of UI element appName of list 1
+        return
+      end try
 
-      -- Some macOS versions/locales expose "Keep in Dock" directly.
-      if my clickKeepItem(dockMenu, keepNames) then return
+      try
+        click menu item "In Dock behalten" of menu 1 of UI element appName of list 1
+        return
+      end try
 
-      -- Usually it is under Options/Optionen.
-      repeat with optionsName in optionsNames
-        try
-          if exists menu item (contents of optionsName) of dockMenu then
-            set optionsItem to menu item (contents of optionsName) of dockMenu
-            click optionsItem
-            delay 0.3
+      -- English Options submenu
+      try
+        click menu item "Keep in Dock" of menu 1 of menu item "Options" of menu 1 of UI element appName of list 1
+        return
+      end try
 
-            if exists menu 1 of optionsItem then
-              set optionsMenu to menu 1 of optionsItem
+      -- German Optionen submenu
+      try
+        click menu item "Im Dock behalten" of menu 1 of menu item "Optionen" of menu 1 of UI element appName of list 1
+        return
+      end try
 
-              if my clickKeepItem(optionsMenu, keepNames) then return
-            end if
-          end if
-        end try
-      end repeat
+      try
+        click menu item "In Dock behalten" of menu 1 of menu item "Optionen" of menu 1 of UI element appName of list 1
+        return
+      end try
 
       error "Could not find Keep in Dock menu item for: " & appName
     end tell
   end tell
 end run
 APPLESCRIPT
+  then
+    log "warning: AppleScript failed while trying to keep '$label' in Dock"
+    return 1
+  fi
 
   # Optional:
   # RESTORE_DOCK_QUIT_STARTED=1 chezmoi apply
@@ -282,6 +268,8 @@ APPLESCRIPT
     log "quit app started only for Dock pinning: $label"
     quit_app_by_bundle_id "$bid"
   fi
+
+  return 0
 }
 
 dockutil_bin="$(find_dockutil || true)"
