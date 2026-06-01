@@ -94,7 +94,7 @@ wipe_dock_preferences() {
   log "wiping Dock layout"
 
   # Keep unmanaged Macs deterministic. On managed Macs this may be overwritten by policy.
-  defaults write com.apple.dock show-recents -bool false || true
+  defaults write com.apple.dock show-recents -bool true || true
 
   # Prefer dockutil for normal Dock cleanup, but also force the plist arrays as fallback.
   if [[ -n "$dockutil_bin" ]]; then
