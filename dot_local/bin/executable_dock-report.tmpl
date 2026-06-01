@@ -1,0 +1,261 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import plistlib
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from urllib.parse import unquote, urlparse
+
+
+REPO_DATA_FILE = ".chezmoidata/dock.yaml"
+GITHUB_DATA_URL = "https://github.com/Malaber/dotfiles/blob/main/.chezmoidata/dock.yaml"
+
+DESIRED_APPS = {{ .dock.apps | toPrettyJson }}
+
+DOCK_PLIST = Path.home() / "Library/Preferences/com.apple.dock.plist"
+
+
+def normalize_app_path(value: str) -> str:
+    value = value.strip()
+
+    if value.startswith("file://"):
+        parsed = urlparse(value)
+        value = unquote(parsed.path)
+
+    value = os.path.expandvars(os.path.expanduser(value))
+    value = value.rstrip("/")
+
+    return os.path.normpath(value)
+
+
+def key(path: str) -> str:
+    return normalize_app_path(path).casefold()
+
+
+def app_label(path: str) -> str:
+    return Path(path).stem
+
+
+def dedupe_paths(paths: list[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+
+    for path in paths:
+        normalized = normalize_app_path(path)
+        path_key = key(normalized)
+
+        if path_key in seen:
+            continue
+
+        seen.add(path_key)
+        result.append(normalized)
+
+    return result
+
+
+def read_current_dock_apps() -> list[dict[str, str]]:
+    if not DOCK_PLIST.exists():
+        return []
+
+    with DOCK_PLIST.open("rb") as handle:
+        plist = plistlib.load(handle)
+
+    apps: list[dict[str, str]] = []
+
+    for item in plist.get("persistent-apps", []):
+        tile_data = item.get("tile-data", {})
+        file_data = tile_data.get("file-data", {})
+
+        raw_path = file_data.get("_CFURLString")
+        if not raw_path:
+            continue
+
+        path = normalize_app_path(str(raw_path))
+        label = str(tile_data.get("file-label") or app_label(path))
+
+        apps.append(
+            {
+                "label": label,
+                "path": path,
+            }
+        )
+
+    # Keep order, remove duplicate paths.
+    seen: set[str] = set()
+    unique: list[dict[str, str]] = []
+
+    for app in apps:
+        app_key = key(app["path"])
+
+        if app_key in seen:
+            continue
+
+        seen.add(app_key)
+        unique.append(app)
+
+    return unique
+
+
+def yaml_for_apps(paths: list[str]) -> str:
+    lines = [
+        "dock:",
+        "  apps:",
+    ]
+
+    for path in paths:
+        # JSON strings are valid YAML scalars and handle spaces/escaping safely.
+        lines.append(f"    - {json.dumps(path, ensure_ascii=False)}")
+
+    return "\n".join(lines) + "\n"
+
+
+def print_path_list(title: str, rows: list[str]) -> None:
+    print(title)
+
+    if not rows:
+        print("  none")
+        return
+
+    for row in rows:
+        print(f"  - {row}")
+
+
+def find_dockutil() -> str | None:
+    for candidate in (
+        shutil.which("dockutil"),
+        "/opt/homebrew/bin/dockutil",
+        "/usr/local/bin/dockutil",
+    ):
+        if candidate and Path(candidate).exists():
+            return candidate
+
+    return None
+
+
+def apply_target_layout(target_apps: list[str]) -> int:
+    dockutil = find_dockutil()
+
+    if not dockutil:
+        print("ERROR: dockutil is required for --apply but was not found.", file=sys.stderr)
+        print("Install with: brew install dockutil", file=sys.stderr)
+        return 2
+
+    if not target_apps:
+        print("Refusing to apply an empty Dock layout.")
+        return 0
+
+    subprocess.run([dockutil, "--remove", "all", "--no-restart"], check=False)
+
+    for app in target_apps:
+        subprocess.run(
+            [
+                dockutil,
+                "--add",
+                app,
+                "--section",
+                "apps",
+                "--position",
+                "end",
+                "--no-restart",
+            ],
+            check=True,
+        )
+
+    print()
+    print("Applied target Dock plist.")
+    print("Not restarting Dock automatically because your MDM profile may wipe it on Dock restart.")
+    print("If you want to test anyway: killall Dock")
+
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Compare current macOS Dock apps with the declared chezmoi Dock app list."
+    )
+    parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Apply the declared Dock layout. Default is report-only.",
+    )
+    args = parser.parse_args()
+
+    if sys.platform != "darwin":
+        return 0
+
+    desired_all = dedupe_paths([str(path) for path in DESIRED_APPS])
+    desired_installed = [path for path in desired_all if Path(path).exists()]
+    desired_missing = [path for path in desired_all if not Path(path).exists()]
+
+    current_apps = read_current_dock_apps()
+
+    current_keys = {key(app["path"]) for app in current_apps}
+    desired_installed_keys = {key(path) for path in desired_installed}
+
+    kept = [path for path in desired_installed if key(path) in current_keys]
+    would_add = [path for path in desired_installed if key(path) not in current_keys]
+    unmanaged_current = [
+        app for app in current_apps if key(app["path"]) not in desired_installed_keys
+    ]
+
+    unmanaged_existing_paths = [
+        app["path"] for app in unmanaged_current if Path(app["path"]).exists()
+    ]
+
+    suggested_apps = dedupe_paths(desired_all + unmanaged_existing_paths)
+
+    print("Dock diff: current Dock -> declared chezmoi Dock")
+    print(f"Data file: {REPO_DATA_FILE}")
+    print(f"GitHub:    {GITHUB_DATA_URL}")
+    print()
+
+    print_path_list(
+        "Current persistent Dock apps:",
+        [f'{app["label"]}: {app["path"]}' for app in current_apps],
+    )
+    print()
+
+    print_path_list("Target Dock apps after chezmoi, installed only:", desired_installed)
+    print()
+
+    print_path_list("Would keep:", kept)
+    print()
+
+    print_path_list("Would add:", would_add)
+    print()
+
+    print_path_list(
+        "New/unmanaged current Dock apps, would be removed by the declared list:",
+        [f'{app["label"]}: {app["path"]}' for app in unmanaged_current],
+    )
+
+    if desired_missing:
+        print()
+        print_path_list("Configured but not installed, ignored:", desired_missing)
+
+    if unmanaged_current:
+        print()
+        print("To keep the unmanaged current Dock apps, paste this into:")
+        print(f"  {REPO_DATA_FILE}")
+        print()
+        print("GitHub file:")
+        print(f"  {GITHUB_DATA_URL}")
+        print()
+        print("----- 8< -----")
+        print(yaml_for_apps(suggested_apps), end="")
+        print("----- >8 -----")
+
+    if args.apply:
+        print()
+        return apply_target_layout(desired_installed)
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
