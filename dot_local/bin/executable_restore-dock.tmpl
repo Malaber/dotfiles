@@ -93,7 +93,8 @@ wipe_dock_preferences() {
 
   log "wiping Dock layout"
 
-  # Keep unmanaged Macs deterministic. On managed Macs this may be overwritten by policy.
+  # Keep recent/running app section enabled.
+  # Set this to false if you want no recent-apps section.
   defaults write com.apple.dock show-recents -bool true || true
 
   # Prefer dockutil for normal Dock cleanup, but also force the plist arrays as fallback.
@@ -103,6 +104,93 @@ wipe_dock_preferences() {
 
   defaults write com.apple.dock persistent-apps -array || true
   defaults write com.apple.dock persistent-others -array || true
+}
+
+current_persistent_dock_labels() {
+  /usr/bin/python3 <<'PY'
+from pathlib import Path
+import plistlib
+
+plist_path = Path.home() / "Library/Preferences/com.apple.dock.plist"
+
+if not plist_path.exists():
+    raise SystemExit(0)
+
+with plist_path.open("rb") as f:
+    plist = plistlib.load(f)
+
+for item in plist.get("persistent-apps", []):
+    tile_data = item.get("tile-data", {})
+    label = tile_data.get("file-label")
+
+    if label:
+        print(label)
+PY
+}
+
+live_remove_from_dock() {
+  local label="$1"
+
+  log "live-remove: $label"
+
+  DOCK_APP_LABEL="$label" /usr/bin/osascript <<'APPLESCRIPT'
+on clickRemoveItem(theMenu, removeNames)
+  repeat with removeName in removeNames
+    try
+      if exists menu item (contents of removeName) of theMenu then
+        click menu item (contents of removeName) of theMenu
+        return true
+      end if
+    end try
+  end repeat
+
+  return false
+end clickRemoveItem
+
+on run
+  set appName to system attribute "DOCK_APP_LABEL"
+
+  -- English + German. Add more localized labels here if needed.
+  set removeNames to {"Remove from Dock", "Aus Dock entfernen", "Vom Dock entfernen"}
+  set optionsNames to {"Options", "Optionen"}
+
+  tell application "System Events"
+    tell process "Dock"
+      if not (exists UI element appName of list 1) then
+        return
+      end if
+
+      tell UI element appName of list 1
+        perform action "AXShowMenu"
+      end tell
+
+      delay 0.3
+
+      set dockMenu to menu 1 of UI element appName of list 1
+
+      -- Some macOS versions/locales expose "Remove from Dock" directly.
+      if my clickRemoveItem(dockMenu, removeNames) then return
+
+      -- Usually it is under Options/Optionen.
+      repeat with optionsName in optionsNames
+        try
+          if exists menu item (contents of optionsName) of dockMenu then
+            set optionsItem to menu item (contents of optionsName) of dockMenu
+            click optionsItem
+            delay 0.3
+
+            if exists menu 1 of optionsItem then
+              set optionsMenu to menu 1 of optionsItem
+
+              if my clickRemoveItem(optionsMenu, removeNames) then return
+            end if
+          end if
+        end try
+      end repeat
+    end tell
+  end tell
+end run
+APPLESCRIPT
 }
 
 live_keep_in_dock() {
@@ -236,6 +324,36 @@ fi
 
 # Give MDM/cfprefsd a chance to apply its Dock profile after restart.
 sleep "${DOCK_POST_RESTART_DELAY:-2}"
+
+desired_labels=()
+
+for app in "${installed_apps[@]}"; do
+  desired_labels+=("$(app_label "$app")")
+done
+
+is_desired_label() {
+  local candidate="$1"
+
+  for desired in "${desired_labels[@]}"; do
+    if [[ "$candidate" == "$desired" ]]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+log "removing unmanaged persistent Dock apps via running Dock UI"
+
+while IFS= read -r current_label; do
+  [[ -n "$current_label" ]] || continue
+
+  if ! is_desired_label "$current_label"; then
+    if ! live_remove_from_dock "$current_label"; then
+      log "warning: failed to live-remove $current_label"
+    fi
+  fi
+done < <(current_persistent_dock_labels)
 
 log "adding configured apps to the running Dock via UI automation"
 
