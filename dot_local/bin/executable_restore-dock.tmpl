@@ -4,7 +4,60 @@ set -euo pipefail
 [[ "$(uname -s)" == "Darwin" ]] || exit 0
 
 log() {
-  print -ru2 -- "[restore-dock] $*"
+  printf '%s\n' "[restore-dock] $*" >&2
+}
+
+app_label() {
+  local app="$1"
+  local plist="$app/Contents/Info.plist"
+  local value=""
+
+  for key in CFBundleDisplayName CFBundleName; do
+    value="$(/usr/libexec/PlistBuddy -c "Print :$key" "$plist" 2>/dev/null || true)"
+
+    if [[ -n "$value" ]]; then
+      printf '%s\n' "$value"
+      return 0
+    fi
+  done
+
+  basename "$app" .app
+}
+
+bundle_id() {
+  local app="$1"
+  local plist="$app/Contents/Info.plist"
+
+  /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$plist" 2>/dev/null || true
+}
+
+app_is_running() {
+  local bid="$1"
+
+  if [[ -z "$bid" ]]; then
+    printf '%s\n' "unknown"
+    return 0
+  fi
+
+  /usr/bin/osascript <<APPLESCRIPT 2>/dev/null || true
+try
+  return application id "$bid" is running
+on error
+  return "unknown"
+end try
+APPLESCRIPT
+}
+
+quit_app_by_bundle_id() {
+  local bid="$1"
+
+  [[ -n "$bid" ]] || return 0
+
+  /usr/bin/osascript <<APPLESCRIPT >/dev/null 2>&1 || true
+try
+  tell application id "$bid" to quit
+end try
+APPLESCRIPT
 }
 
 find_dockutil() {
@@ -15,7 +68,7 @@ find_dockutil() {
 
   for candidate in /opt/homebrew/bin/dockutil /usr/local/bin/dockutil; do
     if [[ -x "$candidate" ]]; then
-      print -- "$candidate"
+      printf '%s\n' "$candidate"
       return 0
     fi
   done
@@ -23,12 +76,127 @@ find_dockutil() {
   return 1
 }
 
-dockutil_bin="$(find_dockutil || true)"
+wait_for_dock() {
+  for _ in {1..80}; do
+    if pgrep -x Dock >/dev/null 2>&1; then
+      return 0
+    fi
 
-if [[ -z "$dockutil_bin" ]]; then
-  log "dockutil not found. Install it with: brew install dockutil"
-  exit 0
-fi
+    sleep 0.25
+  done
+
+  return 1
+}
+
+wipe_dock_preferences() {
+  local dockutil_bin="$1"
+
+  log "wiping Dock layout"
+
+  # Keep unmanaged Macs deterministic. On managed Macs this may be overwritten by policy.
+  defaults write com.apple.dock show-recents -bool false || true
+
+  # Prefer dockutil for normal Dock cleanup, but also force the plist arrays as fallback.
+  if [[ -n "$dockutil_bin" ]]; then
+    "$dockutil_bin" --remove all --no-restart >/dev/null 2>&1 || true
+  fi
+
+  defaults write com.apple.dock persistent-apps -array || true
+  defaults write com.apple.dock persistent-others -array || true
+}
+
+live_keep_in_dock() {
+  local app="$1"
+  local label
+  local bid
+  local was_running
+
+  label="$(app_label "$app")"
+  bid="$(bundle_id "$app")"
+  was_running="$(app_is_running "$bid")"
+
+  log "live-add: $label ($app)"
+
+  # The app has to be running so its Dock tile exists.
+  # -g: do not bring to foreground
+  # -j: hide on launch
+  /usr/bin/open -gj "$app"
+
+  DOCK_APP_LABEL="$label" /usr/bin/osascript <<'APPLESCRIPT'
+on clickKeepItem(theMenu, keepNames)
+  repeat with keepName in keepNames
+    try
+      if exists menu item (contents of keepName) of theMenu then
+        click menu item (contents of keepName) of theMenu
+        return true
+      end if
+    end try
+  end repeat
+
+  return false
+end clickKeepItem
+
+on run
+  set appName to system attribute "DOCK_APP_LABEL"
+
+  -- English + German. Add more localized labels here if needed.
+  set keepNames to {"Keep in Dock", "Im Dock behalten", "In Dock behalten"}
+  set optionsNames to {"Options", "Optionen"}
+
+  tell application "System Events"
+    tell process "Dock"
+      repeat 100 times
+        if exists UI element appName of list 1 then exit repeat
+        delay 0.1
+      end repeat
+
+      if not (exists UI element appName of list 1) then
+        error "Dock item not found: " & appName
+      end if
+
+      tell UI element appName of list 1
+        perform action "AXShowMenu"
+      end tell
+
+      delay 0.3
+
+      set dockMenu to menu 1 of UI element appName of list 1
+
+      -- Some macOS versions/locales expose "Keep in Dock" directly.
+      if my clickKeepItem(dockMenu, keepNames) then return
+
+      -- Usually it is under Options/Optionen.
+      repeat with optionsName in optionsNames
+        try
+          if exists menu item (contents of optionsName) of dockMenu then
+            set optionsItem to menu item (contents of optionsName) of dockMenu
+            click optionsItem
+            delay 0.3
+
+            if exists menu 1 of optionsItem then
+              set optionsMenu to menu 1 of optionsItem
+
+              if my clickKeepItem(optionsMenu, keepNames) then return
+            end if
+          end if
+        end try
+      end repeat
+
+      error "Could not find Keep in Dock menu item for: " & appName
+    end tell
+  end tell
+end run
+APPLESCRIPT
+
+  # Optional:
+  # RESTORE_DOCK_QUIT_STARTED=1 chezmoi apply
+  if [[ "${RESTORE_DOCK_QUIT_STARTED:-0}" == "1" && "$was_running" == "false" ]]; then
+    log "quit app started only for Dock pinning: $label"
+    quit_app_by_bundle_id "$bid"
+  fi
+}
+
+dockutil_bin="$(find_dockutil || true)"
 
 desired_apps=(
 {{- range .dock.apps }}
@@ -53,47 +221,39 @@ if (( ${#installed_apps[@]} == 0 )); then
   exit 0
 fi
 
-# Optional delay for login/MDM race conditions.
-# Example: DOCK_RESTORE_DELAY=10 restore-dock
+# Optional delay for login/MDM races.
+# Example: DOCK_RESTORE_DELAY=10 chezmoi apply
 sleep "${DOCK_RESTORE_DELAY:-0}"
 
-# Wait until Dock exists. Useful when this is called shortly after login.
-for _ in {1..40}; do
-  if pgrep -x Dock >/dev/null 2>&1; then
-    break
-  fi
-  sleep 0.25
-done
+wipe_dock_preferences "$dockutil_bin"
 
-log "removing existing Dock items"
-"$dockutil_bin" --remove all --no-restart >/dev/null 2>&1 || true
-
-log "adding configured Dock apps"
-for app in "${installed_apps[@]}"; do
-  log "add: $app"
-  "$dockutil_bin" --add "$app" --section apps --position end --no-restart >/dev/null
-done
-
-# Restart once so the Dock UI reflects the new plist.
-# Caveat: if MDM reapplies the empty Dock on every Dock restart, this may be wiped again.
+log "restarting Dock so wipe/MDM state becomes visible"
 killall Dock >/dev/null 2>&1 || true
-sleep 2
 
-missing=0
-
-for app in "${installed_apps[@]}"; do
-  label="${app:t:r}"
-
-  if ! "$dockutil_bin" --find "$label" >/dev/null 2>&1; then
-    log "warning: '$label' was not found after Dock restart"
-    missing=1
-  fi
-done
-
-if (( missing )); then
-  log "MDM may be wiping Dock items after every Dock restart. The script ran, but the profile may still win."
-else
-  log "Dock restored"
+if ! wait_for_dock; then
+  log "warning: Dock did not appear in time"
 fi
 
-exit 0
+# Give MDM/cfprefsd a chance to apply its Dock profile after restart.
+sleep "${DOCK_POST_RESTART_DELAY:-2}"
+
+log "adding configured apps to the running Dock via UI automation"
+
+failed=0
+
+for app in "${installed_apps[@]}"; do
+  if ! live_keep_in_dock "$app"; then
+    log "warning: failed to live-add $app"
+    failed=1
+  fi
+done
+
+if (( failed )); then
+  log "finished with warnings"
+else
+  log "Dock restored live"
+fi
+
+log "not restarting Dock afterward, otherwise MDM may wipe it again"
+
+exit "$failed"
