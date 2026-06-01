@@ -1,6 +1,6 @@
 #!/bin/zsh
-{{- if eq .chezmoi.os "darwin" }}
 set -euo pipefail
 
+[[ "$(uname -s)" == "Darwin" ]] || exit 0
+
 "$HOME/.local/bin/restore-dock"
-{{- end }}
