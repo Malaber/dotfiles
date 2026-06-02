@@ -2,3 +2,10 @@ dock:
   apps:
     - "/Applications/Microsoft Edge.app"
     - "/Applications/iTerm.app"
+    - "/Applications/KeePassXC.app"
+    - "/Applications/Microsoft Teams.app"
+    - "/Applications/Microsoft Outlook.app"
+    - "/Users/Daniel.Schaedler/Applications/PyCharm.app"
+    - "/Users/Daniel.Schaedler/Applications/Edge Apps.localized/Google Chat.app"
+    - "/Users/Daniel.Schaedler/Applications/Edge Apps.localized/Google Meet.app"
+    - "/Applications/Google Chrome.app"
