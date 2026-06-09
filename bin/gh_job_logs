@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+
+import argparse
+import shutil
+import subprocess
+import sys
+
+
+DEFAULT_REPO = "Malaber/planini"
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Print GitHub Actions job logs via gh api."
+    )
+
+    parser.add_argument(
+        "job_id",
+        type=int,
+        help="GitHub Actions job ID, e.g. 80193995255",
+    )
+
+    parser.add_argument(
+        "-R",
+        "--repo",
+        default=DEFAULT_REPO,
+        metavar="OWNER/REPO",
+        help=f"GitHub repository. Default: {DEFAULT_REPO}",
+    )
+
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+
+    if shutil.which("gh") is None:
+        print("error: GitHub CLI 'gh' not found in PATH", file=sys.stderr)
+        return 127
+
+    endpoint = f"repos/{args.repo}/actions/jobs/{args.job_id}/logs"
+
+    result = subprocess.run(
+        ["gh", "api", endpoint],
+        check=False,
+    )
+
+    return result.returncode
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
