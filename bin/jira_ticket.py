@@ -271,7 +271,7 @@ class JiraClient:
 
             raise JiraError(
                 f"Jira API {method.upper()} {url} failed with HTTP {exc.code}: "
-                f"{details[:2000]}{hint}"
+                f"{details}{hint}"
             ) from exc
 
         except urllib.error.URLError as exc:
@@ -289,10 +289,6 @@ class JiraClient:
         )
 
 
-def compact_ws(text: str) -> str:
-    return re.sub(r"\n{3,}", "\n\n", (text or "").strip())
-
-
 def adf_to_text(node: Any, indent: int = 0) -> str:
     if node is None:
         return ""
@@ -304,8 +300,8 @@ def adf_to_text(node: Any, indent: int = 0) -> str:
         return str(node)
 
     if isinstance(node, list):
-        return compact_ws(
-            "\n".join(adf_to_text(item, indent) for item in node if item is not None)
+        return "\n".join(
+            adf_to_text(item, indent) for item in node if item is not None
         )
 
     if not isinstance(node, dict):
@@ -452,11 +448,6 @@ def format_value(value: Any) -> str:
     return str(value)
 
 
-def first_chars(text: str, limit: int) -> str:
-    text = compact_ws(text or "")
-    return text if len(text) <= limit else text[:limit].rstrip() + "..."
-
-
 def issue_url(site: str, key: str) -> str:
     return f"{normalize_site(site)}/browse/{key}"
 
@@ -557,43 +548,50 @@ def get_issue(
 def get_comments(
     client: JiraClient,
     key: str,
-    max_comments: int,
+    max_comments: int | None,
 ) -> list[dict[str, Any]]:
-    if max_comments <= 0:
+    if max_comments is not None and max_comments <= 0:
         return []
 
     comments: list[dict[str, Any]] = []
     start_at = 0
-    page_size = min(max_comments, 100)
 
-    while len(comments) < max_comments:
+    while True:
+        remaining = None if max_comments is None else max_comments - len(comments)
+
+        if remaining is not None and remaining <= 0:
+            break
+
         page = client.get(
             f"/rest/api/3/issue/{urllib.parse.quote(key)}/comment",
             {
                 "startAt": start_at,
-                "maxResults": min(page_size, max_comments - len(comments)),
+                "maxResults": min(remaining, 100) if remaining is not None else 100,
                 "orderBy": "created",
             },
         )
 
         batch = page.get("comments") or page.get("values") or []
-        comments.extend(batch)
 
-        total = page.get("total", len(comments))
-        start_at += len(batch)
-
-        if not batch or start_at >= total:
+        if not batch:
             break
 
-    return comments[:max_comments]
+        comments.extend(batch)
+        start_at += len(batch)
+
+        total = page.get("total")
+        if total is not None and start_at >= total:
+            break
+
+    return comments
 
 
 def search_children(
     client: JiraClient,
     key: str,
-    max_results: int,
+    max_results: int | None,
 ) -> list[dict[str, Any]]:
-    if max_results <= 0:
+    if max_results is not None and max_results <= 0:
         return []
 
     fields = "summary,issuetype"
@@ -604,16 +602,75 @@ def search_children(
     ]
 
     for jql in jqls:
+        issues: list[dict[str, Any]] = []
+        seen_issue_ids: set[str] = set()
+        start_at = 0
+        next_page_token: str | None = None
+
         try:
-            result = client.get(
-                "/rest/api/3/search/jql",
-                {
+            while True:
+                remaining = None if max_results is None else max_results - len(issues)
+
+                if remaining is not None and remaining <= 0:
+                    break
+
+                params: dict[str, Any] = {
                     "jql": jql,
                     "fields": fields,
-                    "maxResults": max_results,
-                },
-            )
-            issues = result.get("issues") or []
+                    "maxResults": min(remaining, 100) if remaining is not None else 100,
+                }
+
+                if next_page_token:
+                    params["nextPageToken"] = next_page_token
+                elif start_at:
+                    params["startAt"] = start_at
+
+                result = client.get("/rest/api/3/search/jql", params)
+                batch = result.get("issues") or []
+
+                if not batch:
+                    break
+
+                new_count = 0
+
+                for issue in batch:
+                    issue_id = str(issue.get("id") or issue.get("key") or "")
+
+                    if issue_id and issue_id in seen_issue_ids:
+                        continue
+
+                    if issue_id:
+                        seen_issue_ids.add(issue_id)
+
+                    issues.append(issue)
+                    new_count += 1
+
+                    if max_results is not None and len(issues) >= max_results:
+                        break
+
+                if new_count == 0:
+                    break
+
+                if max_results is not None and len(issues) >= max_results:
+                    break
+
+                next_page_token = result.get("nextPageToken")
+
+                if next_page_token:
+                    continue
+
+                if result.get("isLast") is True:
+                    break
+
+                total = result.get("total")
+                if total is not None and len(issues) >= total:
+                    break
+
+                if len(batch) < params["maxResults"]:
+                    break
+
+                start_at += len(batch)
+
             if issues:
                 return issues
         except JiraError:
@@ -637,8 +694,8 @@ def build_payload(
     client: JiraClient,
     key: str,
     *,
-    max_comments: int,
-    max_children: int,
+    max_comments: int | None,
+    max_children: int | None,
 ) -> dict[str, Any]:
     field_catalog = get_field_catalog(client)
     issue = get_issue(client, key, epic_custom_field_ids(field_catalog))
@@ -787,7 +844,7 @@ def render_ticket(config: dict[str, Any], payload: dict[str, Any]) -> str:
         for idx, comment in enumerate(comments, start=1):
             author = display_user(comment.get("author"))
             created = comment.get("created") or "unknown date"
-            body = first_chars(adf_to_text(comment.get("body")), 1000)
+            body = adf_to_text(comment.get("body"))
 
             lines.append("")
             lines.append(f"### Comment {idx} — {author}, {created}")
@@ -795,7 +852,7 @@ def render_ticket(config: dict[str, Any], payload: dict[str, Any]) -> str:
 
         lines.append("")
 
-    return compact_ws("\n".join(lines)) + "\n"
+    return "\n".join(lines).rstrip() + "\n"
 
 
 def find_attachment(
@@ -984,7 +1041,7 @@ def cmd_get_attachment(args: argparse.Namespace) -> int:
 
 def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Read Jira Cloud issues into concise Markdown and download attachments."
+        description="Read Jira Cloud issues into Markdown and download attachments."
     )
     parser.add_argument("--config", type=Path, default=CONFIG_PATH)
 
@@ -1010,8 +1067,18 @@ def make_parser() -> argparse.ArgumentParser:
     read = sub.add_parser("read", help="read one issue")
     read.add_argument("ticket", type=require_ticket_key)
     read.add_argument("--json", action="store_true")
-    read.add_argument("--max-comments", type=int, default=50)
-    read.add_argument("--children", type=int, default=50)
+    read.add_argument(
+        "--max-comments",
+        type=int,
+        default=None,
+        help="limit loaded comments; default: load all comments",
+    )
+    read.add_argument(
+        "--children",
+        type=int,
+        default=None,
+        help="limit loaded child issues; default: load all children",
+    )
     read.set_defaults(func=cmd_read)
 
     get_attachment = sub.add_parser(
