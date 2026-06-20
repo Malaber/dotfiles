@@ -711,7 +711,7 @@ def render_ticket(config: dict[str, Any], payload: dict[str, Any]) -> str:
     lines.extend(
         [
             "## Description",
-            first_chars(description, 1800) if description else "-",
+            description if description else "-",
             "",
         ]
     )
