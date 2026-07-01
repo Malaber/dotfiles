@@ -28,6 +28,8 @@ packages:
       - bitwarden
       - caffeine
       - google-chrome
+      - brave-browser 
+      - microsoft-edge
       - jetbrains-toolbox
       - iterm2
       - rectangle
